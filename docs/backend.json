@@ -32,35 +32,35 @@
         "createdAt"
       ]
     },
-    "Expense": {
+    "Transaction": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Expense",
+      "title": "Transaction",
       "type": "object",
-      "description": "Represents an expense recorded by a user.",
+      "description": "Represents a transaction recorded by a user.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the expense."
+          "description": "Unique identifier for the transaction."
         },
         "userId": {
           "type": "string",
-          "description": "Reference to User. (Relationship: User 1:N Expense)"
+          "description": "Reference to User. (Relationship: User 1:N Transaction)"
         },
         "categoryId": {
           "type": "string",
-          "description": "Reference to Category. (Relationship: Category 1:N Expense)"
+          "description": "Reference to Category. (Relationship: Category 1:N Transaction)"
         },
         "amount": {
           "type": "number",
-          "description": "The amount of the expense."
+          "description": "The amount of the transaction."
         },
         "description": {
           "type": "string",
-          "description": "A description of the expense."
+          "description": "A description of the transaction."
         },
         "date": {
           "type": "string",
-          "description": "The date of the expense.",
+          "description": "The date of the transaction.",
           "format": "date-time"
         },
         "receiptUrl": {
@@ -215,21 +215,21 @@
         }
       },
       {
-        "path": "/users/{userId}/expenses/{expenseId}",
+        "path": "/users/{userId}/transactions/{transactionId}",
         "definition": {
-          "entityName": "Expense",
+          "entityName": "Transaction",
           "schema": {
-            "$ref": "#/backend/entities/Expense"
+            "$ref": "#/backend/entities/Transaction"
           },
-          "description": "Stores expense data for each user. The `userId` is denormalized into each expense document, enabling authorization independence. This allows security rules to validate that the authenticated user is the owner of the expense without needing to perform additional reads.",
+          "description": "Stores transaction data for each user. The `userId` is denormalized into each transaction document, enabling authorization independence. This allows security rules to validate that the authenticated user is the owner of the transaction without needing to perform additional reads.",
           "params": [
             {
               "name": "userId",
               "description": "The unique identifier for the user."
             },
             {
-              "name": "expenseId",
-              "description": "The unique identifier for the expense."
+              "name": "transactionId",
+              "description": "The unique identifier for the transaction."
             }
           ]
         }
@@ -295,6 +295,6 @@
         }
       }
     ],
-    "reasoning": "The Firestore data structure is designed to ensure security, scalability, and ease of debugging, following the principles of Authorization Independence, Clarity of Intent, DBAC, and QAPs. User data, expenses, categories, budgets, and monthly summaries are segregated into collections, following the 'User 1:N Entity' pattern for data ownership. This structure facilitates simple and robust security rules by avoiding hierarchical authorization dependencies. Authorization independence is achieved by storing all necessary access control information directly within the documents. For example, expenses are stored under `/users/{userId}/expenses/{expenseId}` to make `userId` available for rules. This eliminates the need for `get()` calls and maintains atomic operations. QAPs are supported through clear path-based ownership, and the Membership Map pattern is avoided in favor of path-based ownership due to the exclusive 1:N relationship between users and their data. The structure supports the required QAPs through segregation and path-based ownership. The design explicitly models state using the `status` field where relevant and maintains a predictable schema with explicit naming conventions."
+    "reasoning": "The Firestore data structure is designed to ensure security, scalability, and ease of debugging, following the principles of Authorization Independence, Clarity of Intent, DBAC, and QAPs. User data, transactions, categories, budgets, and monthly summaries are segregated into collections, following the 'User 1:N Entity' pattern for data ownership. This structure facilitates simple and robust security rules by avoiding hierarchical authorization dependencies. Authorization independence is achieved by storing all necessary access control information directly within the documents. For example, transactions are stored under `/users/{userId}/transactions/{transactionId}` to make `userId` available for rules. This eliminates the need for `get()` calls and maintains atomic operations. QAPs are supported through clear path-based ownership, and the Membership Map pattern is avoided in favor of path-based ownership due to the exclusive 1:N relationship between users and their data. The structure supports the required QAPs through segregation and path-based ownership. The design explicitly models state using the `status` field where relevant and maintains a predictable schema with explicit naming conventions."
   }
 }
