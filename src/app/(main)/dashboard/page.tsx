@@ -7,10 +7,8 @@ import { MonthSelector } from '@/components/dashboard/month-selector';
 import { RecentTransactions } from '@/components/dashboard/recent-transactions';
 import { addMonths, format, startOfMonth, endOfMonth } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useUser } from '@/firebase';
-import { useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useMemoFirebase, useCollection, useFirestore } from '@/firebase';
 import { collection, query, where, orderBy } from 'firebase/firestore';
-import { useFirestore } from '@/firebase';
 import type { Transaction } from '@/lib/types';
 
 export default function DashboardPage() {

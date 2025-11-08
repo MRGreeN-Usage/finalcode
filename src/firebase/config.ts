@@ -1,8 +1,9 @@
 export const firebaseConfig = {
-  "projectId": "expensewise-a2a43",
-  "appId": "1:380826170979:web:122978038318289456570c",
-  "storageBucket": "expensewise-a2a43.appspot.com",
-  "apiKey": "AIzaSyAz_-_y0t4p4E-nJm3t5p7b1b3q0t1r9r8",
-  "authDomain": "expensewise-a2a43.firebaseapp.com",
-  "messagingSenderId": "380826170979"
+  apiKey: "AIzaSyAiFoznMiUx39CtwidMavdDoRwHWgJcQ5U",
+  authDomain: "gen-lang-client-0239454321.firebaseapp.com",
+  projectId: "gen-lang-client-0239454321",
+  storageBucket: "gen-lang-client-0239454321.firebasestorage.app",
+  messagingSenderId: "379528957989",
+  appId: "1:379528957989:web:ac5a524d33e3cc334fefcc",
+  measurementId: "G-DDW1JWPE8M"
 };

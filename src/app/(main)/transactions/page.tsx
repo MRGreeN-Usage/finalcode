@@ -1,5 +1,5 @@
 'use client';
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { PlusCircle, FileDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { TransactionTable } from '@/components/transactions/transaction-table';
@@ -12,7 +12,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { useUser, useFirestore, useCollection } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { collection, query, orderBy, doc } from 'firebase/firestore';
 
@@ -22,8 +22,8 @@ export default function TransactionsPage() {
   const { user } = useUser();
   const firestore = useFirestore();
 
-  const transactionsQuery = useMemo(() => {
-    if (!user) return null;
+  const transactionsQuery = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
     return query(
       collection(firestore, 'users', user.uid, 'transactions'),
       orderBy('date', 'desc')
