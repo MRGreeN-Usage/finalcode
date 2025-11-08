@@ -1,14 +1,16 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Logo } from '@/components/shared/logo';
 import { Loader2 } from 'lucide-react';
+import { useAuth, useUser } from '@/firebase';
+import { createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, updateProfile } from 'firebase/auth';
+import { useToast } from '@/hooks/use-toast';
 
 const GoogleIcon = () => (
   <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2">
@@ -24,20 +26,36 @@ const GoogleIcon = () => (
 export default function SignupPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const router = useRouter();
-  const { signup, user } = useAuth();
+  const auth = useAuth();
+  const { user, isUserLoading } = useUser();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (!isUserLoading && user) {
+      router.push('/dashboard');
+    }
+  }, [user, isUserLoading, router]);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      await signup(email, password);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      if(userCredential.user) {
+        await updateProfile(userCredential.user, { displayName: name });
+      }
       router.push('/dashboard');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Signup failed:', error);
-      // Here you would show a toast notification
+      toast({
+        variant: 'destructive',
+        title: 'Sign-up Failed',
+        description: error.message,
+      });
     } finally {
       setIsLoading(false);
     }
@@ -45,15 +63,28 @@ export default function SignupPage() {
 
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
-    // In a real app, you would call a function like signInWithGoogle() from your auth context
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    router.push('/dashboard');
-    setIsGoogleLoading(false);
+    const provider = new GoogleAuthProvider();
+    try {
+        await signInWithPopup(auth, provider);
+        router.push('/dashboard');
+    } catch (error: any) {
+        console.error("Google sign-in failed:", error);
+        toast({
+            variant: "destructive",
+            title: "Google Sign-In Failed",
+            description: error.message,
+        });
+    } finally {
+        setIsGoogleLoading(false);
+    }
   }
   
-  if (user) {
-    router.push('/dashboard');
-    return null;
+  if (isUserLoading || user) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
   }
 
   return (
@@ -67,6 +98,18 @@ export default function SignupPage() {
         <CardContent>
           <div className="grid gap-4">
             <form onSubmit={handleSignup} className="grid gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="name">Name</Label>
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="John Doe"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  disabled={isLoading || isGoogleLoading}
+                />
+              </div>
               <div className="grid gap-2">
                 <Label htmlFor="email">Email</Label>
                 <Input

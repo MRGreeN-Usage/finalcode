@@ -26,13 +26,14 @@ import { CalendarIcon, Loader2, Upload } from 'lucide-react';
 import { Calendar } from '../ui/calendar';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
 const categories: TransactionCategory[] = ['Food', 'Transport', 'Shopping', 'Housing', 'Health', 'Entertainment', 'Income', 'Other'];
 
 interface TransactionDialogProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
-  onSave: (transaction: Transaction) => void;
+  onSave: (transaction: Omit<Transaction, 'id' | 'userId'>) => void;
   transaction?: Transaction;
 }
 
@@ -43,6 +44,7 @@ export function TransactionDialog({ isOpen, setIsOpen, onSave, transaction }: Tr
   const [description, setDescription] = useState('');
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (transaction) {
@@ -63,26 +65,53 @@ export function TransactionDialog({ isOpen, setIsOpen, onSave, transaction }: Tr
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!date) return;
+    if (!date) {
+      toast({
+        variant: 'destructive',
+        title: 'Invalid Date',
+        description: 'Please select a date for the transaction.'
+      })
+      return;
+    };
     setIsLoading(true);
 
-    // Simulate saving
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    onSave({
-      id: transaction?.id || Date.now().toString(),
-      userId: transaction?.userId || 'mock-user-id',
-      type,
-      amount: parseFloat(amount),
-      category,
-      description,
-      date: date.toISOString(),
-    });
-    setIsLoading(false);
-    setIsOpen(false);
+    try {
+      await new Promise(resolve => setTimeout(resolve, 500)); // Simulate latency
+      onSave({
+        type,
+        amount: parseFloat(amount),
+        category,
+        description,
+        date: date.toISOString(),
+      });
+      toast({
+        title: `Transaction ${transaction ? 'updated' : 'added'}`,
+        description: `Successfully ${transaction ? 'updated' : 'added'} transaction.`,
+      })
+      setIsOpen(false);
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: `Failed to save transaction.`
+      })
+    } finally {
+      setIsLoading(false);
+    }
   };
   
   const filteredCategories = type === 'income' ? ['Income'] : categories.filter(c => c !== 'Income');
+
+  useEffect(() => {
+    if (type === 'income') {
+      setCategory('Income');
+    } else {
+      if (category === 'Income') {
+        setCategory('Food');
+      }
+    }
+  }, [type, category]);
+
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -96,7 +125,7 @@ export function TransactionDialog({ isOpen, setIsOpen, onSave, transaction }: Tr
         <form onSubmit={handleSubmit} id="transaction-form" className="grid gap-4 py-4">
           <div className="grid gap-2">
             <Label>Type</Label>
-            <RadioGroup defaultValue={type} onValueChange={(value: 'income' | 'expense') => setType(value)}>
+            <RadioGroup value={type} onValueChange={(value: 'income' | 'expense') => setType(value)}>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="expense" id="r-expense" />
                 <Label htmlFor="r-expense">Expense</Label>

@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import { useAuth } from '@/hooks/use-auth';
+import { useUser } from '@/firebase';
 import { Sidebar } from '@/components/layout/sidebar';
 import { UserNav } from '@/components/layout/user-nav';
 import { Logo } from '@/components/shared/logo';
@@ -10,16 +10,16 @@ import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, isUserLoading } = useUser();
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (!isUserLoading && !user) {
       router.push('/login');
     }
-  }, [user, loading, router]);
+  }, [user, isUserLoading, router]);
 
-  if (loading) {
+  if (isUserLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">

@@ -1,46 +1,73 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { BudgetList } from '@/components/budgets/budget-list';
 import { BudgetDialog } from '@/components/budgets/budget-dialog';
-import type { Budget } from '@/lib/types';
+import type { Budget, Transaction } from '@/lib/types';
 import { MonthSelector } from '@/components/dashboard/month-selector';
-import { addMonths, format } from 'date-fns';
+import { addMonths, format, startOfMonth, endOfMonth } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useUser, useFirestore, useCollection } from '@/firebase';
+import { addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
+import { collection, query, where, doc } from 'firebase/firestore';
 
-// Mock data
-const MOCK_BUDGETS: Budget[] = [
-  { id: '1', userId: '1', category: 'Food', amount: 500, month: '2024-05' },
-  { id: '2', userId: '1', category: 'Shopping', amount: 300, month: '2024-05' },
-  { id: '3', userId: '1', category: 'Transport', amount: 150, month: '2024-05' },
-  { id: '4', userId: '1', category: 'Entertainment', amount: 200, month: '2024-05' },
-];
-
-// Mock spending data
-const MOCK_SPENDING = {
-  'Food': 350.75,
-  'Shopping': 280.50,
-  'Transport': 160.00,
-  'Entertainment': 120.00,
-};
 
 export default function BudgetsPage() {
-  const [budgets, setBudgets] = useState<Budget[]>(MOCK_BUDGETS);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedBudget, setSelectedBudget] = useState<Budget | undefined>(undefined);
   const [currentMonth, setCurrentMonth] = useState<Date | null>(null);
 
+  const { user } = useUser();
+  const firestore = useFirestore();
+
   useEffect(() => {
     setCurrentMonth(new Date());
   }, []);
+  
+  const monthKey = currentMonth ? format(currentMonth, "yyyy-MM") : '';
+
+  const budgetsQuery = useMemo(() => {
+    if (!user || !monthKey) return null;
+    return query(
+      collection(firestore, 'users', user.uid, 'budgets'),
+      where('month', '==', monthKey)
+    );
+  }, [user, firestore, monthKey]);
+  
+  const { data: budgets, isLoading: budgetsLoading } = useCollection<Budget>(budgetsQuery);
+
+  const transactionsQuery = useMemo(() => {
+    if (!user || !currentMonth) return null;
+    const start = startOfMonth(currentMonth);
+    const end = endOfMonth(currentMonth);
+    return query(
+      collection(firestore, 'users', user.uid, 'transactions'),
+      where('type', '==', 'expense'),
+      where('date', '>=', start.toISOString()),
+      where('date', '<=', end.toISOString())
+    );
+  }, [user, firestore, currentMonth]);
+  
+  const { data: transactions, isLoading: transactionsLoading } = useCollection<Transaction>(transactionsQuery);
+
+  const spending = useMemo(() => {
+    if (!transactions) return {};
+    return transactions.reduce((acc, t) => {
+      if (acc[t.category]) {
+        acc[t.category] += t.amount;
+      } else {
+        acc[t.category] = t.amount;
+      }
+      return acc;
+    }, {} as Record<string, number>);
+  }, [transactions]);
 
   const handleMonthChange = (direction: 'next' | 'prev') => {
     setCurrentMonth((prev) => (prev ? addMonths(prev, direction === 'next' ? 1 : -1) : new Date()));
   };
   
   const formattedMonth = currentMonth ? format(currentMonth, "MMMM yyyy") : '...';
-  const monthKey = currentMonth ? format(currentMonth, "yyyy-MM") : '';
 
   const handleAddBudget = () => {
     setSelectedBudget(undefined);
@@ -52,16 +79,21 @@ export default function BudgetsPage() {
     setIsDialogOpen(true);
   };
   
-  const handleSaveBudget = (budget: Budget) => {
+  const handleSaveBudget = (budgetData: Omit<Budget, 'id' | 'userId'>) => {
+    if (!user) return;
     if (selectedBudget) {
-      setBudgets(budgets.map(b => b.id === budget.id ? budget : b));
+      const docRef = doc(firestore, 'users', user.uid, 'budgets', selectedBudget.id);
+      updateDocumentNonBlocking(docRef, budgetData);
     } else {
-      setBudgets([...budgets, { ...budget, id: Date.now().toString(), month: monthKey }]);
+      const collectionRef = collection(firestore, 'users', user.uid, 'budgets');
+      addDocumentNonBlocking(collectionRef, { ...budgetData, userId: user.uid });
     }
   };
   
   const handleDeleteBudget = (id: string) => {
-    setBudgets(budgets.filter(b => b.id !== id));
+    if (!user) return;
+    const docRef = doc(firestore, 'users', user.uid, 'budgets', id);
+    deleteDocumentNonBlocking(docRef);
   };
 
   return (
@@ -88,10 +120,11 @@ export default function BudgetsPage() {
       </div>
 
       <BudgetList
-        budgets={budgets.filter(b => b.month === monthKey)}
-        spending={MOCK_SPENDING}
+        budgets={budgets || []}
+        spending={spending}
         onEdit={handleEditBudget}
         onDelete={handleDeleteBudget}
+        isLoading={budgetsLoading || transactionsLoading}
       />
 
       <BudgetDialog
@@ -99,7 +132,7 @@ export default function BudgetsPage() {
         setIsOpen={setIsDialogOpen}
         onSave={handleSaveBudget}
         budget={selectedBudget}
-        existingCategories={budgets.map(b => b.category)}
+        existingCategories={budgets?.map(b => b.category) || []}
         currentMonth={currentMonth}
       />
     </div>

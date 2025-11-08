@@ -1,16 +1,11 @@
 'use client';
 
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ChartContainer, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart';
-
-// Mock data
-const chartData = [
-  { date: 'Week 1', income: 1200, expenses: 800 },
-  { date: 'Week 2', income: 1500, expenses: 1000 },
-  { date: 'Week 3', income: 1100, expenses: 950 },
-  { date: 'Week 4', income: 1800, expenses: 1200 },
-];
+import type { Transaction } from '@/lib/types';
+import { useMemo } from 'react';
+import { eachWeekOfInterval, startOfMonth, endOfMonth, format, getDay } from 'date-fns';
 
 const chartConfig = {
   income: {
@@ -23,11 +18,36 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
-export function IncomeExpenseChart({ month }: { month: string }) {
+export function IncomeExpenseChart({ transactions }: { transactions: Transaction[] }) {
+  const chartData = useMemo(() => {
+    const now = new Date();
+    const monthStart = startOfMonth(now);
+    const monthEnd = endOfMonth(now);
+
+    const weeks = eachWeekOfInterval({ start: monthStart, end: monthEnd }, { weekStartsOn: 1 });
+
+    return weeks.map((weekStart, index) => {
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekEnd.getDate() + 6);
+      
+      const weekTransactions = transactions.filter(t => {
+        const txDate = new Date(t.date);
+        return txDate >= weekStart && txDate <= weekEnd;
+      });
+
+      return {
+        date: `Week ${index + 1}`,
+        income: weekTransactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0),
+        expenses: weekTransactions.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0),
+      };
+    });
+  }, [transactions]);
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Income vs. Expenses</CardTitle>
+        <CardDescription>Weekly breakdown for this month</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="h-[300px] w-full">

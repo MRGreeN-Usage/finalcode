@@ -12,15 +12,39 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import type { Budget } from '@/lib/types';
+import { Skeleton } from '../ui/skeleton';
 
 interface BudgetListProps {
   budgets: Budget[];
   spending: Record<string, number>;
   onEdit: (budget: Budget) => void;
   onDelete: (id: string) => void;
+  isLoading: boolean;
 }
 
-export function BudgetList({ budgets, spending, onEdit, onDelete }: BudgetListProps) {
+export function BudgetList({ budgets, spending, onEdit, onDelete, isLoading }: BudgetListProps) {
+    if (isLoading) {
+        return (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {Array.from({ length: 3 }).map((_, i) => (
+                    <Card key={i}>
+                        <CardHeader className="flex flex-row items-start justify-between pb-4">
+                            <div className="space-y-2">
+                                <Skeleton className="h-6 w-24" />
+                                <Skeleton className="h-4 w-40" />
+                            </div>
+                            <Skeleton className="h-8 w-8" />
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                            <Skeleton className="h-4 w-full" />
+                            <Skeleton className="h-4 w-32" />
+                        </CardContent>
+                    </Card>
+                ))}
+            </div>
+        )
+    }
+
   if (budgets.length === 0) {
     return (
       <Card className="flex flex-col items-center justify-center p-12 text-center">
@@ -36,7 +60,7 @@ export function BudgetList({ budgets, spending, onEdit, onDelete }: BudgetListPr
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
       {budgets.map((budget) => {
         const spent = spending[budget.category] || 0;
-        const progress = (spent / budget.amount) * 100;
+        const progress = Math.min((spent / budget.amount) * 100, 100);
         const remaining = budget.amount - spent;
 
         return (

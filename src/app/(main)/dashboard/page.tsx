@@ -1,25 +1,54 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { DashboardCards } from '@/components/dashboard/dashboard-cards';
 import { IncomeExpenseChart } from '@/components/dashboard/income-expense-chart';
 import { MonthSelector } from '@/components/dashboard/month-selector';
 import { RecentTransactions } from '@/components/dashboard/recent-transactions';
-import { addMonths, format } from 'date-fns';
+import { addMonths, format, startOfMonth, endOfMonth } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useUser } from '@/firebase';
+import { useCollection, WithId } from '@/firebase';
+import { collection, query, where, orderBy } from 'firebase/firestore';
+import { useFirestore } from '@/firebase';
+import type { Transaction } from '@/lib/types';
 
 export default function DashboardPage() {
   const [currentMonth, setCurrentMonth] = useState<Date | null>(null);
+  const { user } = useUser();
+  const firestore = useFirestore();
 
   useEffect(() => {
     setCurrentMonth(new Date());
   }, []);
+
+  const transactionsQuery = useMemo(() => {
+    if (!user || !currentMonth) return null;
+    const start = startOfMonth(currentMonth);
+    const end = endOfMonth(currentMonth);
+    return query(
+      collection(firestore, 'users', user.uid, 'transactions'),
+      where('date', '>=', start.toISOString()),
+      where('date', '<=', end.toISOString()),
+      orderBy('date', 'desc')
+    );
+  }, [user, firestore, currentMonth]);
+
+  const { data: transactions, isLoading: transactionsLoading } = useCollection<Transaction>(transactionsQuery);
 
   const handleMonthChange = (direction: 'next' | 'prev') => {
     setCurrentMonth((prev) => (prev ? addMonths(prev, direction === 'next' ? 1 : -1) : new Date()));
   };
 
   const formattedMonth = currentMonth ? format(currentMonth, 'MMMM yyyy') : '...';
+
+  const { income, expenses, balance } = useMemo(() => {
+    if (!transactions) return { income: 0, expenses: 0, balance: 0 };
+    const income = transactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
+    const expenses = transactions.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
+    const balance = income - expenses;
+    return { income, expenses, balance };
+  }, [transactions]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -38,14 +67,20 @@ export default function DashboardPage() {
         )}
       </div>
 
-      <DashboardCards month={formattedMonth} />
+      <DashboardCards 
+        month={formattedMonth} 
+        income={income}
+        expenses={expenses}
+        balance={balance}
+        isLoading={transactionsLoading}
+      />
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
         <div className="lg:col-span-4">
-          <IncomeExpenseChart month={formattedMonth} />
+          <IncomeExpenseChart transactions={transactions || []} />
         </div>
         <div className="lg:col-span-3">
-          <RecentTransactions />
+          <RecentTransactions transactions={transactions?.slice(0, 5) || []} isLoading={transactionsLoading} />
         </div>
       </div>
     </div>

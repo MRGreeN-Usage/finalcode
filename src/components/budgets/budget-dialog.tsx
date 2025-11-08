@@ -22,13 +22,14 @@ import {
 import type { Budget, TransactionCategory } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
 
 const categories: Exclude<TransactionCategory, 'Income'>[] = ['Food', 'Transport', 'Shopping', 'Housing', 'Health', 'Entertainment', 'Other'];
 
 interface BudgetDialogProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
-  onSave: (budget: Budget) => void;
+  onSave: (budget: Omit<Budget, 'id' | 'userId'>) => void;
   budget?: Budget;
   existingCategories: string[];
   currentMonth: Date | null;
@@ -38,6 +39,7 @@ export function BudgetDialog({ isOpen, setIsOpen, onSave, budget, existingCatego
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState<TransactionCategory>('Food');
   const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (budget) {
@@ -45,27 +47,40 @@ export function BudgetDialog({ isOpen, setIsOpen, onSave, budget, existingCatego
       setCategory(budget.category);
     } else {
       setAmount('');
-      setCategory('Food');
+      // Find the first available category to set as default
+      const firstAvailable = categories.find(c => !existingCategories.includes(c));
+      setCategory(firstAvailable || 'Food');
     }
-  }, [budget, isOpen]);
+  }, [budget, isOpen, existingCategories]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate saving
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    try {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        onSave({
+          category: category as Exclude<TransactionCategory, 'Income'>,
+          amount: parseFloat(amount),
+          month: budget?.month || (currentMonth ? format(currentMonth, 'yyyy-MM') : format(new Date(), 'yyyy-MM')),
+        });
+        
+        toast({
+            title: `Budget ${budget ? 'updated' : 'set'}`,
+            description: `Successfully ${budget ? 'updated' : 'set'} budget for ${category}.`,
+        });
 
-    onSave({
-      id: budget?.id || Date.now().toString(),
-      userId: budget?.userId || 'mock-user-id',
-      category: category as Exclude<TransactionCategory, 'Income'>,
-      amount: parseFloat(amount),
-      month: budget?.month || (currentMonth ? format(currentMonth, 'yyyy-MM') : format(new Date(), 'yyyy-MM')),
-    });
-
-    setIsLoading(false);
-    setIsOpen(false);
+        setIsOpen(false);
+    } catch (error) {
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Failed to save budget."
+        })
+    } finally {
+        setIsLoading(false);
+    }
   };
   
   const availableCategories = budget ? categories : categories.filter(c => !existingCategories.includes(c));
@@ -88,9 +103,11 @@ export function BudgetDialog({ isOpen, setIsOpen, onSave, budget, existingCatego
                         <SelectValue placeholder="Select a category" />
                     </SelectTrigger>
                     <SelectContent>
-                        {availableCategories.map((cat) => (
-                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                        ))}
+                        {availableCategories.length > 0 ? availableCategories.map((cat) => (
+                          <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                        )) : (
+                            <SelectItem value={category} disabled>{category}</SelectItem>
+                        )}
                     </SelectContent>
                     </Select>
                 </div>
@@ -102,7 +119,7 @@ export function BudgetDialog({ isOpen, setIsOpen, onSave, budget, existingCatego
         </form>
         <DialogFooter>
           <Button type="button" variant="ghost" onClick={() => setIsOpen(false)} disabled={isLoading}>Cancel</Button>
-          <Button type="submit" form="budget-form" disabled={isLoading}>
+          <Button type="submit" form="budget-form" disabled={isLoading || availableCategories.length === 0 && !budget}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Save Budget
           </Button>

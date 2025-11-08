@@ -1,14 +1,16 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Logo } from '@/components/shared/logo';
 import { Loader2 } from 'lucide-react';
+import { useAuth, useUser } from '@/firebase';
+import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { useToast } from '@/hooks/use-toast';
 
 const GoogleIcon = () => (
   <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2">
@@ -26,17 +28,29 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const router = useRouter();
-  const { login, user } = useAuth();
+  const auth = useAuth();
+  const { user, isUserLoading } = useUser();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (!isUserLoading && user) {
+      router.push('/dashboard');
+    }
+  }, [user, isUserLoading, router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      await login(email, password);
+      await signInWithEmailAndPassword(auth, email, password);
       router.push('/dashboard');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login failed:', error);
-      // Here you would show a toast notification
+      toast({
+        variant: 'destructive',
+        title: 'Login Failed',
+        description: error.message,
+      });
     } finally {
       setIsLoading(false);
     }
@@ -44,15 +58,28 @@ export default function LoginPage() {
   
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
-    // In a real app, you would call a function like signInWithGoogle() from your auth context
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    router.push('/dashboard');
-    setIsGoogleLoading(false);
+    const provider = new GoogleAuthProvider();
+    try {
+        await signInWithPopup(auth, provider);
+        router.push('/dashboard');
+    } catch (error: any) {
+        console.error("Google sign-in failed:", error);
+        toast({
+            variant: "destructive",
+            title: "Google Sign-In Failed",
+            description: error.message,
+        });
+    } finally {
+        setIsGoogleLoading(false);
+    }
   }
 
-  if (user) {
-    router.push('/dashboard');
-    return null;
+  if (isUserLoading || user) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
   }
 
   return (

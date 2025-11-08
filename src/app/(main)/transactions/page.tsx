@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { PlusCircle, FileDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { TransactionTable } from '@/components/transactions/transaction-table';
@@ -12,19 +12,25 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-
-// Mock data
-const MOCK_TRANSACTIONS: Transaction[] = [
-  { id: '1', userId: '1', type: 'expense', amount: 75.50, category: 'Food', description: 'Dinner with friends', date: '2024-05-20T19:00:00Z' },
-  { id: '2', userId: '1', type: 'income', amount: 2500, category: 'Income', description: 'Monthly Salary', date: '2024-05-01T09:00:00Z' },
-  { id: '3', userId: '1', type: 'expense', amount: 120, category: 'Shopping', description: 'New shoes', date: '2024-05-15T14:30:00Z' },
-  { id: '4', userId: '1', type: 'expense', amount: 42.10, category: 'Transport', description: 'Gasoline', date: '2024-05-18T08:00:00Z' },
-];
+import { useUser, useFirestore, useCollection } from '@/firebase';
+import { addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
+import { collection, query, orderBy, doc } from 'firebase/firestore';
 
 export default function TransactionsPage() {
-  const [transactions, setTransactions] = useState<Transaction[]>(MOCK_TRANSACTIONS);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | undefined>(undefined);
+  const { user } = useUser();
+  const firestore = useFirestore();
+
+  const transactionsQuery = useMemo(() => {
+    if (!user) return null;
+    return query(
+      collection(firestore, 'users', user.uid, 'transactions'),
+      orderBy('date', 'desc')
+    );
+  }, [user, firestore]);
+
+  const { data: transactions, isLoading } = useCollection<Transaction>(transactionsQuery);
 
   const handleAddTransaction = () => {
     setSelectedTransaction(undefined);
@@ -36,16 +42,22 @@ export default function TransactionsPage() {
     setIsDialogOpen(true);
   };
   
-  const handleSaveTransaction = (transaction: Transaction) => {
+  const handleSaveTransaction = (transaction: Omit<Transaction, 'id' | 'userId'>) => {
+    if (!user) return;
+    
     if (selectedTransaction) {
-      setTransactions(transactions.map(t => t.id === transaction.id ? transaction : t));
+      const docRef = doc(firestore, 'users', user.uid, 'transactions', selectedTransaction.id);
+      updateDocumentNonBlocking(docRef, transaction);
     } else {
-      setTransactions([...transactions, { ...transaction, id: Date.now().toString() }]);
+      const collectionRef = collection(firestore, 'users', user.uid, 'transactions');
+      addDocumentNonBlocking(collectionRef, { ...transaction, userId: user.uid });
     }
   };
   
   const handleDeleteTransaction = (id: string) => {
-    setTransactions(transactions.filter(t => t.id !== id));
+    if (!user) return;
+    const docRef = doc(firestore, 'users', user.uid, 'transactions', id);
+    deleteDocumentNonBlocking(docRef);
   };
 
 
@@ -59,14 +71,14 @@ export default function TransactionsPage() {
         <div className="flex gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="gap-2">
+              <Button variant="outline" className="gap-2" disabled={!transactions || transactions.length === 0}>
                 <FileDown className="h-4 w-4" />
                 <span>Export</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => exportToCsv(transactions, 'transactions.csv')}>Export as CSV</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => exportToTxt(transactions, 'transactions.txt', 'Transaction Report')}>Export as TXT</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => transactions && exportToCsv(transactions, 'transactions.csv')}>Export as CSV</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => transactions && exportToTxt(transactions, 'transactions.txt', 'Transaction Report')}>Export as TXT</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
@@ -78,9 +90,10 @@ export default function TransactionsPage() {
       </div>
 
       <TransactionTable
-        transactions={transactions}
+        transactions={transactions || []}
         onEdit={handleEditTransaction}
         onDelete={handleDeleteTransaction}
+        isLoading={isLoading}
       />
 
       <TransactionDialog
