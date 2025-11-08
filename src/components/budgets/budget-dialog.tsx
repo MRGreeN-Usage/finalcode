@@ -31,9 +31,10 @@ interface BudgetDialogProps {
   onSave: (budget: Budget) => void;
   budget?: Budget;
   existingCategories: string[];
+  currentMonth: Date | null;
 }
 
-export function BudgetDialog({ isOpen, setIsOpen, onSave, budget, existingCategories }: BudgetDialogProps) {
+export function BudgetDialog({ isOpen, setIsOpen, onSave, budget, existingCategories, currentMonth }: BudgetDialogProps) {
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState<TransactionCategory>('Food');
   const [isLoading, setIsLoading] = useState(false);
@@ -60,7 +61,7 @@ export function BudgetDialog({ isOpen, setIsOpen, onSave, budget, existingCatego
       userId: budget?.userId || 'mock-user-id',
       category: category as Exclude<TransactionCategory, 'Income'>,
       amount: parseFloat(amount),
-      month: budget?.month || format(new Date(), 'yyyy-MM'),
+      month: budget?.month || (currentMonth ? format(currentMonth, 'yyyy-MM') : format(new Date(), 'yyyy-MM')),
     });
 
     setIsLoading(false);

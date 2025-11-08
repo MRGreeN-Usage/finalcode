@@ -1,20 +1,25 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DashboardCards } from '@/components/dashboard/dashboard-cards';
 import { IncomeExpenseChart } from '@/components/dashboard/income-expense-chart';
 import { MonthSelector } from '@/components/dashboard/month-selector';
 import { RecentTransactions } from '@/components/dashboard/recent-transactions';
 import { addMonths, format } from 'date-fns';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function DashboardPage() {
-  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [currentMonth, setCurrentMonth] = useState<Date | null>(null);
+
+  useEffect(() => {
+    setCurrentMonth(new Date());
+  }, []);
 
   const handleMonthChange = (direction: 'next' | 'prev') => {
-    setCurrentMonth((prev) => addMonths(prev, direction === 'next' ? 1 : -1));
+    setCurrentMonth((prev) => (prev ? addMonths(prev, direction === 'next' ? 1 : -1) : new Date()));
   };
-  
-  const formattedMonth = format(currentMonth, "MMMM yyyy");
+
+  const formattedMonth = currentMonth ? format(currentMonth, 'MMMM yyyy') : '...';
 
   return (
     <div className="flex flex-col gap-6">
@@ -23,10 +28,14 @@ export default function DashboardPage() {
           <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
           <p className="text-muted-foreground">Your financial overview for {formattedMonth}</p>
         </div>
-        <MonthSelector 
-          currentMonth={currentMonth} 
-          onMonthChange={handleMonthChange}
-        />
+        {currentMonth ? (
+          <MonthSelector 
+            currentMonth={currentMonth} 
+            onMonthChange={handleMonthChange}
+          />
+        ) : (
+            <Skeleton className="h-8 w-[170px]" />
+        )}
       </div>
 
       <DashboardCards month={formattedMonth} />

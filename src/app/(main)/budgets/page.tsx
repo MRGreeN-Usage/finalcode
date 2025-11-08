@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { BudgetList } from '@/components/budgets/budget-list';
@@ -7,6 +7,7 @@ import { BudgetDialog } from '@/components/budgets/budget-dialog';
 import type { Budget } from '@/lib/types';
 import { MonthSelector } from '@/components/dashboard/month-selector';
 import { addMonths, format } from 'date-fns';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // Mock data
 const MOCK_BUDGETS: Budget[] = [
@@ -28,14 +29,18 @@ export default function BudgetsPage() {
   const [budgets, setBudgets] = useState<Budget[]>(MOCK_BUDGETS);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedBudget, setSelectedBudget] = useState<Budget | undefined>(undefined);
-  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [currentMonth, setCurrentMonth] = useState<Date | null>(null);
+
+  useEffect(() => {
+    setCurrentMonth(new Date());
+  }, []);
 
   const handleMonthChange = (direction: 'next' | 'prev') => {
-    setCurrentMonth((prev) => addMonths(prev, direction === 'next' ? 1 : -1));
+    setCurrentMonth((prev) => (prev ? addMonths(prev, direction === 'next' ? 1 : -1) : new Date()));
   };
   
-  const formattedMonth = format(currentMonth, "MMMM yyyy");
-  const monthKey = format(currentMonth, "yyyy-MM");
+  const formattedMonth = currentMonth ? format(currentMonth, "MMMM yyyy") : '...';
+  const monthKey = currentMonth ? format(currentMonth, "yyyy-MM") : '';
 
   const handleAddBudget = () => {
     setSelectedBudget(undefined);
@@ -67,10 +72,14 @@ export default function BudgetsPage() {
           <p className="text-muted-foreground">Set and track your spending goals for {formattedMonth}.</p>
         </div>
         <div className="flex items-center gap-2">
-            <MonthSelector 
-            currentMonth={currentMonth} 
-            onMonthChange={handleMonthChange}
-            />
+            {currentMonth ? (
+                <MonthSelector 
+                    currentMonth={currentMonth} 
+                    onMonthChange={handleMonthChange}
+                />
+            ) : (
+                <Skeleton className="h-8 w-[170px]" />
+            )}
             <Button onClick={handleAddBudget} className="gap-2">
               <PlusCircle className="h-4 w-4" />
               <span>Set Budget</span>
@@ -91,6 +100,7 @@ export default function BudgetsPage() {
         onSave={handleSaveBudget}
         budget={selectedBudget}
         existingCategories={budgets.map(b => b.category)}
+        currentMonth={currentMonth}
       />
     </div>
   );
