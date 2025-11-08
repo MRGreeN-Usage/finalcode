@@ -69,13 +69,13 @@ export default function LoginPage() {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       await createUserProfile(userCredential);
-      router.push('/dashboard');
+      // No longer need to push, useEffect will handle it
     } catch (error: any) {
       if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found') {
         try {
           const userCredential = await createUserWithEmailAndPassword(auth, email, password);
           await createUserProfile(userCredential);
-          router.push('/dashboard');
+           // No longer need to push, useEffect will handle it
         } catch (signupError: any) {
           console.error('Signup failed after login attempt:', signupError);
           toast({
@@ -103,7 +103,7 @@ export default function LoginPage() {
     try {
       const userCredential = await signInWithPopup(auth, provider);
       await createUserProfile(userCredential);
-      router.push('/dashboard');
+       // No longer need to push, useEffect will handle it
     } catch (error: any) {
       console.error("Google sign-in failed:", error);
       toast({

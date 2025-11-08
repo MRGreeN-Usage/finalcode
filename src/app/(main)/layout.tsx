@@ -39,7 +39,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     }
   }, [user, isUserLoading, router]);
 
-  const isLoading = isUserLoading || isProfileLoading || (user && !profileExists);
+  const isLoading = isUserLoading || (user && !isProfileLoading && !profileExists);
 
   if (isLoading) {
     return (
@@ -55,8 +55,8 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     );
   }
 
-  if (!user) {
-    return null; // Redirect is handled by the effect
+  if (!user || !profileExists) {
+    return null; // Redirect is handled by the effect, or waiting for profile
   }
 
   return (
