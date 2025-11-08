@@ -9,7 +9,12 @@ import { useState, useEffect } from 'react';
 import { Logo } from '@/components/shared/logo';
 import { Loader2 } from 'lucide-react';
 import { useAuth, useUser } from '@/firebase';
-import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import {
+  signInWithEmailAndPassword,
+  GoogleAuthProvider,
+  signInWithPopup,
+  createUserWithEmailAndPassword,
+} from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 
 const GoogleIcon = () => (
@@ -17,7 +22,7 @@ const GoogleIcon = () => (
     <title>Google</title>
     <path
       fill="currentColor"
-      d="M12.48 10.92v3.28h7.84c-.24 1.84-.85 3.18-1.73 4.1-1.02 1.02-2.62 1.9-4.73 1.9-3.87 0-7-3.13-7-7s3.13-7 7-7c1.73 0 3.3.62 4.54 1.8l2.5-2.5C17.66 2.3 15.14 1 12.48 1 7.02 1 3 5.02 3 9.5s4.02 8.5 9.48 8.5c2.9 0 5.2-1 6.9-2.63 1.9-1.84 2.53-4.52 2.53-6.65 0-.5-.06-.95-.12-1.4z"
+      d="M12.48 10.92v3.28h7.84c-.24 1.84-.85 3.18-1.73 4.1-1.02 1.02-2.62 1.9-4.73 1.9-3.87 0-7-3.13-7-7s3.13-7 7-7c1.73 0 3.3 .62 4.54 1.8l2.5-2.5C17.66 2.3 15.14 1 12.48 1 7.02 1 3 5.02 3 9.5s4.02 8.5 9.48 8.5c2.9 0 5.2-1 6.9-2.63 1.9-1.84 2.53-4.52 2.53-6.65 0-.5-.06-.95-.12-1.4z"
     />
   </svg>
 );
@@ -45,12 +50,27 @@ export default function LoginPage() {
       await signInWithEmailAndPassword(auth, email, password);
       router.push('/dashboard');
     } catch (error: any) {
-      console.error('Login failed:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Login Failed',
-        description: error.message,
-      });
+      if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found') {
+        // If user doesn't exist, create a new account
+        try {
+          await createUserWithEmailAndPassword(auth, email, password);
+          router.push('/dashboard');
+        } catch (signupError: any) {
+          console.error('Signup failed after login attempt:', signupError);
+          toast({
+            variant: 'destructive',
+            title: 'Sign-up Failed',
+            description: signupError.message,
+          });
+        }
+      } else {
+        console.error('Login failed:', error);
+        toast({
+          variant: 'destructive',
+          title: 'Login Failed',
+          description: error.message,
+        });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -87,8 +107,8 @@ export default function LoginPage() {
       <Card className="mx-auto w-full max-w-sm">
         <CardHeader className="space-y-4 text-center">
           <Logo className="justify-center" />
-          <CardTitle className="text-2xl">Welcome Back!</CardTitle>
-          <CardDescription>Enter your email below to login to your account</CardDescription>
+          <CardTitle className="text-2xl">Welcome!</CardTitle>
+          <CardDescription>Enter your credentials below to log in or sign up.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4">
@@ -108,9 +128,6 @@ export default function LoginPage() {
               <div className="grid gap-2">
                 <div className="flex items-center">
                   <Label htmlFor="password">Password</Label>
-                  <Button variant="link" className="ml-auto inline-block h-auto p-0 text-sm">
-                    Forgot password?
-                  </Button>
                 </div>
                 <Input
                   id="password"
@@ -123,7 +140,7 @@ export default function LoginPage() {
               </div>
               <Button type="submit" className="w-full" disabled={isLoading || isGoogleLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Login
+                Login or Sign Up
               </Button>
             </form>
             <div className="relative">
@@ -138,14 +155,11 @@ export default function LoginPage() {
             </div>
             <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading || isGoogleLoading}>
               {isGoogleLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon />}
-              Login with Google
+              Continue with Google
             </Button>
           </div>
           <div className="mt-4 text-center text-sm">
-            Don&apos;t have an account?{' '}
-            <Button variant="link" className="p-0 h-auto" onClick={() => router.push('/signup')}>
-              Sign up
-            </Button>
+             By signing in, you agree to our terms.
           </div>
         </CardContent>
       </Card>
