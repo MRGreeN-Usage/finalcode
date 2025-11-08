@@ -1,11 +1,11 @@
 'use client';
 
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, LineChart, Line } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ChartContainer, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart';
 import type { Transaction } from '@/lib/types';
 import { useMemo } from 'react';
-import { eachWeekOfInterval, startOfMonth, endOfMonth, format, getDay } from 'date-fns';
+import { eachWeekOfInterval, startOfMonth, endOfMonth, format, getDay, eachMonthOfInterval, startOfYear, endOfYear } from 'date-fns';
 
 const chartConfig = {
   income: {
@@ -18,27 +18,28 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
-export function IncomeExpenseChart({ transactions }: { transactions: Transaction[] }) {
+export function IncomeExpenseChart({ transactions, title }: { transactions: Transaction[], title?: string }) {
   const chartData = useMemo(() => {
+    if (!transactions || transactions.length === 0) return [];
+    
     const now = new Date();
-    const monthStart = startOfMonth(now);
-    const monthEnd = endOfMonth(now);
+    const yearStart = startOfYear(now);
+    const yearEnd = endOfYear(now);
+    
+    const months = eachMonthOfInterval({ start: yearStart, end: yearEnd });
 
-    const weeks = eachWeekOfInterval({ start: monthStart, end: monthEnd }, { weekStartsOn: 1 });
-
-    return weeks.map((weekStart, index) => {
-      const weekEnd = new Date(weekStart);
-      weekEnd.setDate(weekEnd.getDate() + 6);
+    return months.map((monthStart) => {
+      const monthEnd = endOfMonth(monthStart);
       
-      const weekTransactions = transactions.filter(t => {
+      const monthTransactions = transactions.filter(t => {
         const txDate = new Date(t.date);
-        return txDate >= weekStart && txDate <= weekEnd;
+        return txDate >= monthStart && txDate <= monthEnd;
       });
 
       return {
-        date: `Week ${index + 1}`,
-        income: weekTransactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0),
-        expenses: weekTransactions.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0),
+        date: format(monthStart, 'MMM'),
+        income: monthTransactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0),
+        expenses: monthTransactions.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0),
       };
     });
   }, [transactions]);
@@ -46,13 +47,13 @@ export function IncomeExpenseChart({ transactions }: { transactions: Transaction
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Income vs. Expenses</CardTitle>
-        <CardDescription>Weekly breakdown for this month</CardDescription>
+        <CardTitle>{title || 'Income vs. Expenses'}</CardTitle>
+        <CardDescription>{title ? 'Data for the current year' : 'Weekly breakdown for this month'}</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="h-[300px] w-full">
           <ChartContainer config={chartConfig} className="w-full h-full">
-            <BarChart data={chartData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+            <LineChart data={chartData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
               <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} />
               <YAxis tickLine={false} axisLine={false} tickMargin={8} tickFormatter={(value) => `$${value/1000}k`}/>
@@ -60,9 +61,9 @@ export function IncomeExpenseChart({ transactions }: { transactions: Transaction
                 cursor={{ fill: 'hsl(var(--muted))' }}
                 content={<ChartTooltipContent indicator="dot" />}
               />
-              <Bar dataKey="income" fill="var(--color-income)" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="expenses" fill="var(--color-expenses)" radius={[4, 4, 0, 0]} />
-            </BarChart>
+              <Line dataKey="income" type="monotone" stroke="var(--color-income)" strokeWidth={2} dot={false} />
+              <Line dataKey="expenses" type="monotone" stroke="var(--color-expenses)" strokeWidth={2} dot={false} />
+            </LineChart>
           </ChartContainer>
         </div>
       </CardContent>

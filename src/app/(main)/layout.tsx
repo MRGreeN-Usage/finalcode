@@ -1,17 +1,19 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useUser } from '@/firebase';
 import { Sidebar } from '@/components/layout/sidebar';
 import { UserNav } from '@/components/layout/user-nav';
 import { Logo } from '@/components/shared/logo';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -37,15 +39,26 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
-      <Sidebar />
+      <Sidebar className="hidden md:block" />
       <div className="flex flex-col">
         <header className="flex h-14 items-center gap-4 border-b bg-background/95 px-4 lg:h-[60px] lg:px-6 sticky top-0 z-30 backdrop-blur-sm">
-          <div className="flex-1">
-            {/* Can add a mobile nav trigger here */}
-          </div>
+          <Sheet open={open} onOpenChange={setOpen}>
+            <SheetTrigger asChild>
+              <Button variant="outline" size="icon" className="shrink-0 md:hidden">
+                <Menu className="h-5 w-5" />
+                <span className="sr-only">Toggle navigation menu</span>
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="flex flex-col">
+              <Sidebar onLinkClick={() => setOpen(false)} />
+            </SheetContent>
+          </Sheet>
+
+          <div className="flex-1" />
+
           <UserNav />
         </header>
-        <main className="flex-1 p-4 sm:p-6 bg-secondary/50">
+        <main className="flex-1 p-4 sm:p-6 bg-secondary/10">
           {children}
         </main>
       </div>
