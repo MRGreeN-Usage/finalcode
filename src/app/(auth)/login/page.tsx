@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { useState, useEffect } from 'react';
 import { Logo } from '@/components/shared/logo';
 import { Loader2 } from 'lucide-react';
-import { useAuth, useUser, useFirestore, addDocumentNonBlocking } from '@/firebase';
+import { useAuth, useUser, useFirestore } from '@/firebase';
 import {
   signInWithEmailAndPassword,
   GoogleAuthProvider,
@@ -17,7 +17,7 @@ import {
   UserCredential,
 } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
-import { collection, doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 
 const GoogleIcon = () => (
   <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2">
@@ -46,31 +46,39 @@ export default function LoginPage() {
     }
   }, [user, isUserLoading, router]);
 
-  const createUserProfile = (userCredential: UserCredential) => {
+  const createUserProfile = async (userCredential: UserCredential) => {
     if (!firestore) return;
     const user = userCredential.user;
     const userDocRef = doc(firestore, 'users', user.uid);
+    
+    // Check if the document already exists
+    const userDocSnap = await getDoc(userDocRef);
+    if (userDocSnap.exists()) {
+      return; // Profile already exists
+    }
+
     const userDoc = {
       id: user.uid,
       email: user.email,
       name: user.displayName || 'New User',
       createdAt: new Date().toISOString(),
     };
-    // Use setDoc to explicitly set the document with the user's UID
-    setDoc(userDocRef, userDoc);
+    await setDoc(userDocRef, userDoc);
   };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      // Ensure profile exists after login, just in case
+      await createUserProfile(userCredential);
       router.push('/dashboard');
     } catch (error: any) {
       if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found') {
         try {
           const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-          createUserProfile(userCredential);
+          await createUserProfile(userCredential);
           router.push('/dashboard');
         } catch (signupError: any) {
           console.error('Signup failed after login attempt:', signupError);
@@ -98,10 +106,7 @@ export default function LoginPage() {
     const provider = new GoogleAuthProvider();
     try {
       const userCredential = await signInWithPopup(auth, provider);
-      // Check if it's a new user
-      if (userCredential.user && userCredential.user.metadata.creationTime === userCredential.user.metadata.lastSignInTime) {
-        createUserProfile(userCredential);
-      }
+      await createUserProfile(userCredential);
       router.push('/dashboard');
     } catch (error: any) {
       console.error("Google sign-in failed:", error);
