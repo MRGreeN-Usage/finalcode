@@ -42,20 +42,20 @@ export default function TransactionsPage() {
     setIsDialogOpen(true);
   };
   
-  const handleSaveTransaction = (transaction: Omit<Transaction, 'id' | 'userId'>) => {
-    if (!user) return;
+  const handleSaveTransaction = (transactionData: Omit<Transaction, 'id' | 'userId'>) => {
+    if (!user || !firestore) return;
     
     if (selectedTransaction) {
       const docRef = doc(firestore, 'users', user.uid, 'transactions', selectedTransaction.id);
-      updateDocumentNonBlocking(docRef, transaction);
+      updateDocumentNonBlocking(docRef, transactionData);
     } else {
       const collectionRef = collection(firestore, 'users', user.uid, 'transactions');
-      addDocumentNonBlocking(collectionRef, { ...transaction, userId: user.uid });
+      addDocumentNonBlocking(collectionRef, { ...transactionData, userId: user.uid });
     }
   };
   
   const handleDeleteTransaction = (id: string) => {
-    if (!user) return;
+    if (!user || !firestore) return;
     const docRef = doc(firestore, 'users', user.uid, 'transactions', id);
     deleteDocumentNonBlocking(docRef);
   };

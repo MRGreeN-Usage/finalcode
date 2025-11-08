@@ -8,7 +8,7 @@ import type { Budget, Transaction } from '@/lib/types';
 import { MonthSelector } from '@/components/dashboard/month-selector';
 import { addMonths, format, startOfMonth, endOfMonth } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useUser, useFirestore, useCollection } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { collection, query, where, doc } from 'firebase/firestore';
 
@@ -27,8 +27,8 @@ export default function BudgetsPage() {
   
   const monthKey = currentMonth ? format(currentMonth, "yyyy-MM") : '';
 
-  const budgetsQuery = useMemo(() => {
-    if (!user || !monthKey) return null;
+  const budgetsQuery = useMemoFirebase(() => {
+    if (!user || !firestore || !monthKey) return null;
     return query(
       collection(firestore, 'users', user.uid, 'budgets'),
       where('month', '==', monthKey)
@@ -37,8 +37,8 @@ export default function BudgetsPage() {
   
   const { data: budgets, isLoading: budgetsLoading } = useCollection<Budget>(budgetsQuery);
 
-  const transactionsQuery = useMemo(() => {
-    if (!user || !currentMonth) return null;
+  const transactionsQuery = useMemoFirebase(() => {
+    if (!user || !firestore || !currentMonth) return null;
     const start = startOfMonth(currentMonth);
     const end = endOfMonth(currentMonth);
     return query(
@@ -80,7 +80,7 @@ export default function BudgetsPage() {
   };
   
   const handleSaveBudget = (budgetData: Omit<Budget, 'id' | 'userId'>) => {
-    if (!user) return;
+    if (!user || !firestore) return;
     if (selectedBudget) {
       const docRef = doc(firestore, 'users', user.uid, 'budgets', selectedBudget.id);
       updateDocumentNonBlocking(docRef, budgetData);
@@ -91,7 +91,7 @@ export default function BudgetsPage() {
   };
   
   const handleDeleteBudget = (id: string) => {
-    if (!user) return;
+    if (!user || !firestore) return;
     const docRef = doc(firestore, 'users', user.uid, 'budgets', id);
     deleteDocumentNonBlocking(docRef);
   };

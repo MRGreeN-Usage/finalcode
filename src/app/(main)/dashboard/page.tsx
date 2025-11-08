@@ -8,7 +8,7 @@ import { RecentTransactions } from '@/components/dashboard/recent-transactions';
 import { addMonths, format, startOfMonth, endOfMonth } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useUser } from '@/firebase';
-import { useCollection, WithId } from '@/firebase';
+import { useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import type { Transaction } from '@/lib/types';
@@ -22,8 +22,8 @@ export default function DashboardPage() {
     setCurrentMonth(new Date());
   }, []);
 
-  const transactionsQuery = useMemo(() => {
-    if (!user || !currentMonth) return null;
+  const transactionsQuery = useMemoFirebase(() => {
+    if (!user || !firestore || !currentMonth) return null;
     const start = startOfMonth(currentMonth);
     const end = endOfMonth(currentMonth);
     return query(
