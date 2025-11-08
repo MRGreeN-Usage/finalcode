@@ -51,10 +51,9 @@ export default function LoginPage() {
     const user = userCredential.user;
     const userDocRef = doc(firestore, 'users', user.uid);
     
-    // Check if the document already exists
     const userDocSnap = await getDoc(userDocRef);
     if (userDocSnap.exists()) {
-      return; // Profile already exists
+      return; 
     }
 
     const userDoc = {
@@ -71,7 +70,6 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      // Ensure profile exists after login, just in case
       await createUserProfile(userCredential);
       router.push('/dashboard');
     } catch (error: any) {
