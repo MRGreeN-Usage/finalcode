@@ -8,14 +8,16 @@ import { Label } from '@/components/ui/label';
 import { useState, useEffect } from 'react';
 import { Logo } from '@/components/shared/logo';
 import { Loader2 } from 'lucide-react';
-import { useAuth, useUser } from '@/firebase';
+import { useAuth, useUser, useFirestore, addDocumentNonBlocking } from '@/firebase';
 import {
   signInWithEmailAndPassword,
   GoogleAuthProvider,
   signInWithPopup,
   createUserWithEmailAndPassword,
+  UserCredential,
 } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
+import { collection } from 'firebase/firestore';
 
 const GoogleIcon = () => (
   <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2">
@@ -34,6 +36,7 @@ export default function LoginPage() {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const router = useRouter();
   const auth = useAuth();
+  const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
   const { toast } = useToast();
 
@@ -43,6 +46,19 @@ export default function LoginPage() {
     }
   }, [user, isUserLoading, router]);
 
+  const createUserProfile = (userCredential: UserCredential) => {
+    if (!firestore) return;
+    const user = userCredential.user;
+    const userCol = collection(firestore, 'users');
+    const userDoc = {
+      id: user.uid,
+      email: user.email,
+      name: user.displayName || 'New User',
+      createdAt: new Date().toISOString(),
+    };
+    addDocumentNonBlocking(userCol, userDoc);
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -51,9 +67,9 @@ export default function LoginPage() {
       router.push('/dashboard');
     } catch (error: any) {
       if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found') {
-        // If user doesn't exist, create a new account
         try {
-          await createUserWithEmailAndPassword(auth, email, password);
+          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+          createUserProfile(userCredential);
           router.push('/dashboard');
         } catch (signupError: any) {
           console.error('Signup failed after login attempt:', signupError);
@@ -80,17 +96,21 @@ export default function LoginPage() {
     setIsGoogleLoading(true);
     const provider = new GoogleAuthProvider();
     try {
-        await signInWithPopup(auth, provider);
-        router.push('/dashboard');
+      const userCredential = await signInWithPopup(auth, provider);
+      // Create user profile on first Google sign-in
+      if (userCredential.user && userCredential.user.metadata.creationTime === userCredential.user.metadata.lastSignInTime) {
+        createUserProfile(userCredential);
+      }
+      router.push('/dashboard');
     } catch (error: any) {
-        console.error("Google sign-in failed:", error);
-        toast({
-            variant: "destructive",
-            title: "Google Sign-In Failed",
-            description: error.message,
-        });
+      console.error("Google sign-in failed:", error);
+      toast({
+        variant: "destructive",
+        title: "Google Sign-In Failed",
+        description: error.message,
+      });
     } finally {
-        setIsGoogleLoading(false);
+      setIsGoogleLoading(false);
     }
   }
 

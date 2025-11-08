@@ -4,6 +4,7 @@
  * Core Philosophy:
  * This ruleset enforces a strict user-ownership model. Each user has exclusive access to their
  * profile data, transactions, categories, budgets, and monthly summaries. No cross-user access is permitted.
+ * A user document MUST exist in the /users collection for any data access to be granted.
  *
  * Data Structure:
  * All data is nested under `/users/{userId}`, ensuring clear ownership and simplified security rules.
@@ -25,26 +26,31 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // A user must have a profile document to access any of their own data.
+    function userHasProfile(userId) {
+      return exists(/databases/$(database)/documents/users/$(userId));
+    }
+
     /**
      * @description Secures user profile data.
      * @path /users/{userId}
      * @allow (create) Authenticated user can create their own profile if the userId matches their auth UID.
      * @allow (get, update, delete) Authenticated user can only access their own profile data.
-     * @deny (create) Prevents creating a user profile with a userId that doesn't match the authenticated user.
      * @deny (list) Prevents listing all user profiles.
      * @principle Enforces document ownership for all operations.
      */
     match /users/{userId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isOwner(userId) {
-        return isSignedIn() && request.auth.uid == userId;
-      }
-
       allow get: if isOwner(userId);
       allow list: if false;
+      // Allow create only if the document ID is the user's UID.
       allow create: if isOwner(userId) && request.resource.data.id == request.auth.uid;
       allow update: if isOwner(userId) && resource.data.id == request.resource.data.id;
       allow delete: if isOwner(userId) && resource != null;
@@ -53,97 +59,41 @@ service cloud.firestore {
     /**
      * @description Secures transaction data for a specific user.
      * @path /users/{userId}/transactions/{transactionId}
-     * @allow (create) Authenticated user can create an transaction if the userId in the path matches their auth UID.
-     * @allow (get, list, update, delete) Authenticated user can only access their own transaction data.
-     * @deny (create) Prevents creating an transaction with a userId that doesn't match the authenticated user.
-     * @principle Enforces document ownership for all operations.
+     * @allow Authenticated user can perform CRUD operations on their own transactions if their user profile exists.
+     * @principle Enforces document ownership and profile existence for all operations.
      */
     match /users/{userId}/transactions/{transactionId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isOwner(userId) {
-        return isSignedIn() && request.auth.uid == userId;
-      }
-
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId) && request.resource.data.userId == request.auth.uid;
-      allow update: if isOwner(userId) && resource != null && resource.data.userId == request.resource.data.userId;
-      allow delete: if isOwner(userId) && resource != null;
+      allow read, write: if isOwner(userId) && userHasProfile(userId);
     }
 
     /**
      * @description Secures category data for a specific user.
      * @path /users/{userId}/categories/{categoryId}
-     * @allow (create) Authenticated user can create a category if the userId in the path matches their auth UID.
-     * @allow (get, list, update, delete) Authenticated user can only access their own category data.
-     * @deny (create) Prevents creating a category with a userId that doesn't match the authenticated user.
-     * @principle Enforces document ownership for all operations.
+     * @allow Authenticated user can perform CRUD operations on their own categories if their user profile exists.
+     * @principle Enforces document ownership and profile existence for all operations.
      */
     match /users/{userId}/categories/{categoryId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isOwner(userId) {
-        return isSignedIn() && request.auth.uid == userId;
-      }
-
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId) && request.resource.data.userId == request.auth.uid;
-      allow update: if isOwner(userId) && resource != null && resource.data.userId == request.resource.data.userId;
-      allow delete: if isOwner(userId) && resource != null;
+       allow read, write: if isOwner(userId) && userHasProfile(userId);
     }
 
     /**
      * @description Secures budget data for a specific user.
      * @path /users/{userId}/budgets/{budgetId}
-     * @allow (create) Authenticated user can create a budget if the userId in the path matches their auth UID.
-     * @allow (get, list, update, delete) Authenticated user can only access their own budget data.
-     * @deny (create) Prevents creating a budget with a userId that doesn't match the authenticated user.
-     * @principle Enforces document ownership for all operations.
+     * @allow Authenticated user can perform CRUD operations on their own budgets if their user profile exists.
+     * @principle Enforces document ownership and profile existence for all operations.
      */
     match /users/{userId}/budgets/{budgetId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isOwner(userId) {
-        return isSignedIn() && request.auth.uid == userId;
-      }
-
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId) && request.resource.data.userId == request.auth.uid;
-      allow update: if isOwner(userId) && resource != null && resource.data.userId == request.resource.data.userId;
-      allow delete: if isOwner(userId) && resource != null;
+       allow read, write: if isOwner(userId) && userHasProfile(userId);
     }
 
     /**
      * @description Secures monthly summary data for a specific user.
      * @path /users/{userId}/monthlySummaries/{monthlySummaryId}
-     * @allow (create) Authenticated user can create a monthly summary if the userId in the path matches their auth UID.
-     * @allow (get, list, update, delete) Authenticated user can only access their own monthly summary data.
-     * @deny (create) Prevents creating a monthly summary with a userId that doesn't match the authenticated user.
-     * @principle Enforces document ownership for all operations.
+     * @allow Authenticated user can perform CRUD operations on their own summaries if their user profile exists.
+     * @principle Enforces document ownership and profile existence for all operations.
      */
     match /users/{userId}/monthlySummaries/{monthlySummaryId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isOwner(userId) {
-        return isSignedIn() && request.auth.uid == userId;
-      }
-
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId) && request.resource.data.userId == request.auth.uid;
-      allow update: if isOwner(userId) && resource != null && resource.data.userId == request.resource.data.userId;
-      allow delete: if isOwner(userId) && resource != null;
+       allow read, write: if isOwner(userId) && userHasProfile(userId);
     }
   }
 }

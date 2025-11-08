@@ -8,7 +8,7 @@
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the user."
+          "description": "Unique identifier for the user, matching Firebase Auth UID."
         },
         "email": {
           "type": "string",
@@ -28,7 +28,6 @@
       "required": [
         "id",
         "email",
-        "name",
         "createdAt"
       ]
     },
@@ -46,9 +45,14 @@
           "type": "string",
           "description": "Reference to User. (Relationship: User 1:N Transaction)"
         },
-        "categoryId": {
+        "type": {
+            "type": "string",
+            "enum": ["income", "expense"],
+            "description": "The type of transaction."
+        },
+        "category": {
           "type": "string",
-          "description": "Reference to Category. (Relationship: Category 1:N Transaction)"
+          "description": "Category of the transaction (e.g., 'Food', 'Income')."
         },
         "amount": {
           "type": "number",
@@ -72,7 +76,8 @@
       "required": [
         "id",
         "userId",
-        "categoryId",
+        "type",
+        "category",
         "amount",
         "description",
         "date"
@@ -116,32 +121,25 @@
           "type": "string",
           "description": "Reference to User. (Relationship: User 1:N Budget)"
         },
-        "categoryId": {
+        "category": {
           "type": "string",
-          "description": "Reference to Category. (Relationship: Category 1:N Budget)"
+          "description": "The category for the budget."
         },
         "amount": {
           "type": "number",
           "description": "The budget amount."
         },
-        "startDate": {
+        "month": {
           "type": "string",
-          "description": "The start date of the budget period.",
-          "format": "date-time"
-        },
-        "endDate": {
-          "type": "string",
-          "description": "The end date of the budget period.",
-          "format": "date-time"
+          "description": "The month of the budget period in 'YYYY-MM' format."
         }
       },
       "required": [
         "id",
         "userId",
-        "categoryId",
+        "category",
         "amount",
-        "startDate",
-        "endDate"
+        "month"
       ]
     },
     "MonthlySummary": {
@@ -193,7 +191,7 @@
   "auth": {
     "providers": [
       "password",
-      "anonymous"
+      "google.com"
     ]
   },
   "firestore": {
@@ -205,7 +203,7 @@
           "schema": {
             "$ref": "#/backend/entities/User"
           },
-          "description": "Stores user profile information. This collection uses path-based ownership, enabling simple security rules based on `request.auth.uid == userId`.",
+          "description": "Stores user profile information. This collection uses the user's UID as the document ID.",
           "params": [
             {
               "name": "userId",
@@ -221,7 +219,7 @@
           "schema": {
             "$ref": "#/backend/entities/Transaction"
           },
-          "description": "Stores transaction data for each user. The `userId` is denormalized into each transaction document, enabling authorization independence. This allows security rules to validate that the authenticated user is the owner of the transaction without needing to perform additional reads.",
+          "description": "Stores transaction data for each user.",
           "params": [
             {
               "name": "userId",
@@ -241,7 +239,7 @@
           "schema": {
             "$ref": "#/backend/entities/Category"
           },
-          "description": "Stores categories for each user. The `userId` is denormalized, enabling authorization independence.",
+          "description": "Stores categories for each user.",
           "params": [
             {
               "name": "userId",
@@ -261,7 +259,7 @@
           "schema": {
             "$ref": "#/backend/entities/Budget"
           },
-          "description": "Stores budget data for each user. The `userId` is denormalized into each budget document, enabling authorization independence.",
+          "description": "Stores budget data for each user.",
           "params": [
             {
               "name": "userId",
@@ -281,7 +279,7 @@
           "schema": {
             "$ref": "#/backend/entities/MonthlySummary"
           },
-          "description": "Stores monthly financial summaries for each user. The `userId` is denormalized into each monthlySummary document, enabling authorization independence.",
+          "description": "Stores monthly financial summaries for each user.",
           "params": [
             {
               "name": "userId",
@@ -295,6 +293,6 @@
         }
       }
     ],
-    "reasoning": "The Firestore data structure is designed to ensure security, scalability, and ease of debugging, following the principles of Authorization Independence, Clarity of Intent, DBAC, and QAPs. User data, transactions, categories, budgets, and monthly summaries are segregated into collections, following the 'User 1:N Entity' pattern for data ownership. This structure facilitates simple and robust security rules by avoiding hierarchical authorization dependencies. Authorization independence is achieved by storing all necessary access control information directly within the documents. For example, transactions are stored under `/users/{userId}/transactions/{transactionId}` to make `userId` available for rules. This eliminates the need for `get()` calls and maintains atomic operations. QAPs are supported through clear path-based ownership, and the Membership Map pattern is avoided in favor of path-based ownership due to the exclusive 1:N relationship between users and their data. The structure supports the required QAPs through segregation and path-based ownership. The design explicitly models state using the `status` field where relevant and maintains a predictable schema with explicit naming conventions."
+    "reasoning": "The Firestore data structure is designed to ensure security, scalability, and ease of debugging. User data and their related sub-collections (transactions, categories, budgets, summaries) are stored under a top-level `users` collection, with each user's data isolated under a document identified by their UID. This path-based ownership (`/users/{userId}`) is fundamental to the security rules, ensuring users can only access their own data. The existence of a document at `/users/{userId}` is a prerequisite for accessing any sub-collections, creating a secure gateway. This design follows the principle of Authorization Independence, as all necessary data for authorization is contained within the path or the document itself, avoiding costly and complex cross-document reads in security rules."
   }
 }
