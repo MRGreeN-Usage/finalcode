@@ -2,17 +2,26 @@
 
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { ChartTooltipContent } from '@/components/ui/chart';
+import { ChartContainer, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart';
 import type { PieChartData } from '@/lib/types';
 
 // Mock data
 const pieData: PieChartData[] = [
-  { name: 'Food', value: 400, fill: 'hsl(var(--chart-1))' },
-  { name: 'Shopping', value: 300, fill: 'hsl(var(--chart-2))' },
-  { name: 'Transport', value: 200, fill: 'hsl(var(--chart-3))' },
-  { name: 'Entertainment', value: 278, fill: 'hsl(var(--chart-4))' },
-  { name: 'Other', value: 189, fill: 'hsl(var(--chart-5))' },
+  { name: 'Food', value: 400, fill: 'var(--color-food)' },
+  { name: 'Shopping', value: 300, fill: 'var(--color-shopping)' },
+  { name: 'Transport', value: 200, fill: 'var(--color-transport)' },
+  { name: 'Entertainment', value: 278, fill: 'var(--color-entertainment)' },
+  { name: 'Other', value: 189, fill: 'var(--color-other)' },
 ];
+
+const chartConfig = {
+    food: { label: 'Food', color: 'hsl(var(--chart-1))' },
+    shopping: { label: 'Shopping', color: 'hsl(var(--chart-2))' },
+    transport: { label: 'Transport', color: 'hsl(var(--chart-3))' },
+    entertainment: { label: 'Entertainment', color: 'hsl(var(--chart-4))' },
+    other: { label: 'Other', color: 'hsl(var(--chart-5))' },
+} satisfies ChartConfig;
+
 
 export function CategoryPieChart() {
   return (
@@ -23,7 +32,7 @@ export function CategoryPieChart() {
       </CardHeader>
       <CardContent>
         <div className="h-[300px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
+          <ChartContainer config={chartConfig} className="w-full h-full">
             <PieChart>
               <Tooltip content={<ChartTooltipContent indicator="dot" />} />
               <Pie
@@ -42,7 +51,7 @@ export function CategoryPieChart() {
                 ))}
               </Pie>
             </PieChart>
-          </ResponsiveContainer>
+          </ChartContainer>
         </div>
       </CardContent>
     </Card>
