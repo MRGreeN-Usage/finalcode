@@ -1,0 +1,300 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the ExpenseWise application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user."
+        },
+        "email": {
+          "type": "string",
+          "description": "User's email address.",
+          "format": "email"
+        },
+        "name": {
+          "type": "string",
+          "description": "User's full name."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the user account was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "name",
+        "createdAt"
+      ]
+    },
+    "Expense": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Expense",
+      "type": "object",
+      "description": "Represents an expense recorded by a user.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the expense."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Expense)"
+        },
+        "categoryId": {
+          "type": "string",
+          "description": "Reference to Category. (Relationship: Category 1:N Expense)"
+        },
+        "amount": {
+          "type": "number",
+          "description": "The amount of the expense."
+        },
+        "description": {
+          "type": "string",
+          "description": "A description of the expense."
+        },
+        "date": {
+          "type": "string",
+          "description": "The date of the expense.",
+          "format": "date-time"
+        },
+        "receiptUrl": {
+          "type": "string",
+          "description": "URL of the receipt image stored in Firebase Storage.",
+          "format": "uri"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "categoryId",
+        "amount",
+        "description",
+        "date"
+      ]
+    },
+    "Category": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Category",
+      "type": "object",
+      "description": "Represents a category of expenses.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the category."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the category (e.g., 'Food', 'Transportation')."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Category). If null, the category is a default system category."
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ]
+    },
+    "Budget": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Budget",
+      "type": "object",
+      "description": "Represents a user's budget for a specific category and time period.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the budget."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Budget)"
+        },
+        "categoryId": {
+          "type": "string",
+          "description": "Reference to Category. (Relationship: Category 1:N Budget)"
+        },
+        "amount": {
+          "type": "number",
+          "description": "The budget amount."
+        },
+        "startDate": {
+          "type": "string",
+          "description": "The start date of the budget period.",
+          "format": "date-time"
+        },
+        "endDate": {
+          "type": "string",
+          "description": "The end date of the budget period.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "categoryId",
+        "amount",
+        "startDate",
+        "endDate"
+      ]
+    },
+    "MonthlySummary": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "MonthlySummary",
+      "type": "object",
+      "description": "Represents a summary of a user's financial activity for a specific month.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the monthly summary."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N MonthlySummary)"
+        },
+        "month": {
+          "type": "number",
+          "description": "The month for which the summary is calculated (1-12)."
+        },
+        "year": {
+          "type": "number",
+          "description": "The year for which the summary is calculated."
+        },
+        "totalIncome": {
+          "type": "number",
+          "description": "The total income for the month."
+        },
+        "totalExpenses": {
+          "type": "number",
+          "description": "The total expenses for the month."
+        },
+        "balance": {
+          "type": "number",
+          "description": "The balance (income - expenses) for the month."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "month",
+        "year",
+        "totalIncome",
+        "totalExpenses",
+        "balance"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profile information. This collection uses path-based ownership, enabling simple security rules based on `request.auth.uid == userId`.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/expenses/{expenseId}",
+        "definition": {
+          "entityName": "Expense",
+          "schema": {
+            "$ref": "#/backend/entities/Expense"
+          },
+          "description": "Stores expense data for each user. The `userId` is denormalized into each expense document, enabling authorization independence. This allows security rules to validate that the authenticated user is the owner of the expense without needing to perform additional reads.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "expenseId",
+              "description": "The unique identifier for the expense."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/categories/{categoryId}",
+        "definition": {
+          "entityName": "Category",
+          "schema": {
+            "$ref": "#/backend/entities/Category"
+          },
+          "description": "Stores categories for each user. The `userId` is denormalized, enabling authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "categoryId",
+              "description": "The unique identifier for the category."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/budgets/{budgetId}",
+        "definition": {
+          "entityName": "Budget",
+          "schema": {
+            "$ref": "#/backend/entities/Budget"
+          },
+          "description": "Stores budget data for each user. The `userId` is denormalized into each budget document, enabling authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "budgetId",
+              "description": "The unique identifier for the budget."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/monthlySummaries/{monthlySummaryId}",
+        "definition": {
+          "entityName": "MonthlySummary",
+          "schema": {
+            "$ref": "#/backend/entities/MonthlySummary"
+          },
+          "description": "Stores monthly financial summaries for each user. The `userId` is denormalized into each monthlySummary document, enabling authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "monthlySummaryId",
+              "description": "The unique identifier for the monthly summary."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore data structure is designed to ensure security, scalability, and ease of debugging, following the principles of Authorization Independence, Clarity of Intent, DBAC, and QAPs. User data, expenses, categories, budgets, and monthly summaries are segregated into collections, following the 'User 1:N Entity' pattern for data ownership. This structure facilitates simple and robust security rules by avoiding hierarchical authorization dependencies. Authorization independence is achieved by storing all necessary access control information directly within the documents. For example, expenses are stored under `/users/{userId}/expenses/{expenseId}` to make `userId` available for rules. This eliminates the need for `get()` calls and maintains atomic operations. QAPs are supported through clear path-based ownership, and the Membership Map pattern is avoided in favor of path-based ownership due to the exclusive 1:N relationship between users and their data. The structure supports the required QAPs through segregation and path-based ownership. The design explicitly models state using the `status` field where relevant and maintains a predictable schema with explicit naming conventions."
+  }
+}
