@@ -17,7 +17,7 @@ import {
   UserCredential,
 } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
-import { collection } from 'firebase/firestore';
+import { collection, doc, setDoc } from 'firebase/firestore';
 
 const GoogleIcon = () => (
   <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2">
@@ -49,14 +49,15 @@ export default function LoginPage() {
   const createUserProfile = (userCredential: UserCredential) => {
     if (!firestore) return;
     const user = userCredential.user;
-    const userCol = collection(firestore, 'users');
+    const userDocRef = doc(firestore, 'users', user.uid);
     const userDoc = {
       id: user.uid,
       email: user.email,
       name: user.displayName || 'New User',
       createdAt: new Date().toISOString(),
     };
-    addDocumentNonBlocking(userCol, userDoc);
+    // Use setDoc to explicitly set the document with the user's UID
+    setDoc(userDocRef, userDoc);
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -97,7 +98,7 @@ export default function LoginPage() {
     const provider = new GoogleAuthProvider();
     try {
       const userCredential = await signInWithPopup(auth, provider);
-      // Create user profile on first Google sign-in
+      // Check if it's a new user
       if (userCredential.user && userCredential.user.metadata.creationTime === userCredential.user.metadata.lastSignInTime) {
         createUserProfile(userCredential);
       }

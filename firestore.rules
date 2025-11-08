@@ -51,9 +51,9 @@ service cloud.firestore {
       allow get: if isOwner(userId);
       allow list: if false;
       // Allow create only if the document ID is the user's UID.
-      allow create: if isOwner(userId) && request.resource.data.id == request.auth.uid;
-      allow update: if isOwner(userId) && resource.data.id == request.resource.data.id;
-      allow delete: if isOwner(userId) && resource != null;
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
     }
 
     /**
