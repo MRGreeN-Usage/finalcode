@@ -50,19 +50,17 @@ export default function LoginPage() {
     if (!firestore) return;
     const user = userCredential.user;
     const userDocRef = doc(firestore, 'users', user.uid);
-    
-    const userDocSnap = await getDoc(userDocRef);
-    if (userDocSnap.exists()) {
-      return; 
-    }
 
-    const userDoc = {
-      id: user.uid,
-      email: user.email,
-      name: user.displayName || 'New User',
-      createdAt: new Date().toISOString(),
-    };
-    await setDoc(userDocRef, userDoc);
+    const userDocSnap = await getDoc(userDocRef);
+    if (!userDocSnap.exists()) {
+      const userDoc = {
+        id: user.uid,
+        email: user.email,
+        name: user.displayName || 'New User',
+        createdAt: new Date().toISOString(),
+      };
+      await setDoc(userDocRef, userDoc);
+    }
   };
 
   const handleLogin = async (e: React.FormEvent) => {

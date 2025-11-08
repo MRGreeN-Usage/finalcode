@@ -2,16 +2,34 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { useUser } from '@/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { Sidebar } from '@/components/layout/sidebar';
 import { UserNav } from '@/components/layout/user-nav';
 import { Logo } from '@/components/shared/logo';
 import { Loader2, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { doc } from 'firebase/firestore';
+
+function useUserProfile() {
+  const { user } = useUser();
+  const firestore = useFirestore();
+  
+  const userProfileDocRef = useMemoFirebase(() => {
+    if (user && firestore) {
+      return doc(firestore, 'users', user.uid);
+    }
+    return null;
+  }, [user, firestore]);
+  
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileDocRef);
+  
+  return { isProfileLoading, profileExists: !!userProfile };
+}
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser();
+  const { isProfileLoading, profileExists } = useUserProfile();
   const router = useRouter();
   const [open, setOpen] = useState(false);
 
@@ -21,20 +39,24 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     }
   }, [user, isUserLoading, router]);
 
-  if (isUserLoading) {
+  const isLoading = isUserLoading || isProfileLoading || (user && !profileExists);
+
+  if (isLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
           <Logo />
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-muted-foreground">Loading your financial world...</p>
+          <p className="text-muted-foreground">
+            {isUserLoading ? 'Authenticating...' : 'Loading your financial world...'}
+          </p>
         </div>
       </div>
     );
   }
 
   if (!user) {
-    return null; // or a redirect component
+    return null; // Redirect is handled by the effect
   }
 
   return (
