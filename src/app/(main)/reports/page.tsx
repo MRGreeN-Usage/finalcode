@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { CategoryPieChart } from '@/components/reports/category-pie-chart';
 import { SpendingBarChart } from '@/components/reports/spending-bar-chart';
 import { MonthSelector } from '@/components/dashboard/month-selector';
@@ -33,7 +33,7 @@ export default function ReportsPage() {
 
   const { data: allTransactions, isLoading: transactionsLoading } = useCollection<Transaction>(transactionsQuery);
 
-  const monthTransactions = useMemoFirebase(() => {
+  const monthTransactions = useMemo(() => {
     if (!allTransactions || !currentMonth) return [];
     const monthKey = format(currentMonth, 'yyyy-MM');
     return allTransactions.filter(t => format(new Date(t.date), 'yyyy-MM') === monthKey);
