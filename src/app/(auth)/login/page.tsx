@@ -10,10 +10,21 @@ import { useState } from 'react';
 import { Logo } from '@/components/shared/logo';
 import { Loader2 } from 'lucide-react';
 
+const GoogleIcon = () => (
+  <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2">
+    <title>Google</title>
+    <path
+      fill="currentColor"
+      d="M12.48 10.92v3.28h7.84c-.24 1.84-.85 3.18-1.73 4.1-1.02 1.02-2.62 1.9-4.73 1.9-3.87 0-7-3.13-7-7s3.13-7 7-7c1.73 0 3.3.62 4.54 1.8l2.5-2.5C17.66 2.3 15.14 1 12.48 1 7.02 1 3 5.02 3 9.5s4.02 8.5 9.48 8.5c2.9 0 5.2-1 6.9-2.63 1.9-1.84 2.53-4.52 2.53-6.65 0-.5-.06-.95-.12-1.4z"
+    />
+  </svg>
+);
+
 export default function LoginPage() {
   const [email, setEmail] = useState('user@example.com');
   const [password, setPassword] = useState('password');
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const router = useRouter();
   const { login, user } = useAuth();
 
@@ -30,6 +41,14 @@ export default function LoginPage() {
       setIsLoading(false);
     }
   };
+  
+  const handleGoogleSignIn = async () => {
+    setIsGoogleLoading(true);
+    // In a real app, you would call a function like signInWithGoogle() from your auth context
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    router.push('/dashboard');
+    setIsGoogleLoading(false);
+  }
 
   if (user) {
     router.push('/dashboard');
@@ -45,40 +64,56 @@ export default function LoginPage() {
           <CardDescription>Enter your email below to login to your account</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleLogin} className="grid gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="m@example.com"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={isLoading}
-              />
-            </div>
-            <div className="grid gap-2">
-              <div className="flex items-center">
-                <Label htmlFor="password">Password</Label>
-                <Button variant="link" className="ml-auto inline-block h-auto p-0 text-sm">
-                  Forgot password?
-                </Button>
+          <div className="grid gap-4">
+            <form onSubmit={handleLogin} className="grid gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="m@example.com"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={isLoading || isGoogleLoading}
+                />
               </div>
-              <Input
-                id="password"
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={isLoading}
-              />
+              <div className="grid gap-2">
+                <div className="flex items-center">
+                  <Label htmlFor="password">Password</Label>
+                  <Button variant="link" className="ml-auto inline-block h-auto p-0 text-sm">
+                    Forgot password?
+                  </Button>
+                </div>
+                <Input
+                  id="password"
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={isLoading || isGoogleLoading}
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={isLoading || isGoogleLoading}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Login
+              </Button>
+            </form>
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">
+                  Or continue with
+                </span>
+              </div>
             </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Login
+            <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading || isGoogleLoading}>
+              {isGoogleLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon />}
+              Login with Google
             </Button>
-          </form>
+          </div>
           <div className="mt-4 text-center text-sm">
             Don&apos;t have an account?{' '}
             <Button variant="link" className="p-0 h-auto" onClick={() => router.push('/signup')}>
