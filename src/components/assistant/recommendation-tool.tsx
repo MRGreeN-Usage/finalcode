@@ -12,8 +12,8 @@ import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { useCurrency } from '@/hooks/use-currency';
 import { useUser, useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { collection, doc, query, where, orderBy } from 'firebase/firestore';
-import { format, subYears } from 'date-fns';
+import { collection, doc } from 'firebase/firestore';
+import { format } from 'date-fns';
 import type { Transaction } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
 
@@ -30,7 +30,6 @@ export function RecommendationTool() {
 
   const transactionsQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
-    // Query all transactions to give the AI the most context
     return collection(firestore, 'users', user.uid, 'transactions');
   }, [user, firestore]);
 
@@ -41,13 +40,16 @@ export function RecommendationTool() {
         setError('No transaction data available to analyze. Please add some transactions first.');
         return;
     }
+    if (!monthlyIncome) {
+        setError('Please enter your monthly income to generate recommendations.');
+        return;
+    }
 
     setIsLoading(true);
     setError(null);
     setRecommendations(null);
     setAppliedBudgets([]);
 
-    // Map Firestore transactions to the format expected by the AI flow
     const flowTransactions = transactions.map(t => ({
       category: t.category,
       amount: t.amount,
@@ -98,7 +100,7 @@ export function RecommendationTool() {
     setAppliedBudgets(prev => [...prev, category]);
   }
   
-  const canGenerate = !isLoading && !transactionsLoading && monthlyIncome && transactions && transactions.length > 0;
+  const canGenerate = !isLoading && !transactionsLoading && !!monthlyIncome && !!transactions && transactions.length > 0;
 
   return (
     <div className="grid gap-6 lg:grid-cols-3">
