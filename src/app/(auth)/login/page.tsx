@@ -53,6 +53,7 @@ function LoginPageContent() {
     const docSnap = await getDoc(userDocRef);
     if (!docSnap.exists()) {
       try {
+        // Explicitly await the profile creation
         await setDoc(userDocRef, {
           id: user.uid,
           email: user.email,
@@ -65,9 +66,11 @@ function LoginPageContent() {
           title: 'Profile Creation Failed',
           description: error.message,
         });
-        return; 
+        setIsLoading(false);
+        return; // Stop execution if profile creation fails
       }
     }
+    // Only navigate after profile is guaranteed to exist
     router.push('/dashboard');
   };
 
@@ -86,13 +89,14 @@ function LoginPageContent() {
           await handleAuthSuccess(userCredential);
         } catch (signupError: any) {
           toast({ variant: 'destructive', title: 'Sign-up Failed', description: signupError.message });
+          setIsLoading(false);
         }
       } else {
         toast({ variant: 'destructive', title: 'Login Failed', description: error.message });
+        setIsLoading(false);
       }
-    } finally {
-      setIsLoading(false);
-    }
+    } 
+    // Do not set isLoading to false here, as handleAuthSuccess will navigate
   };
 
   const handleGoogleSignIn = async () => {
@@ -104,12 +108,13 @@ function LoginPageContent() {
       await handleAuthSuccess(userCredential);
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Google Sign-In Failed', description: error.message });
-    } finally {
       setIsLoading(false);
     }
   };
-
-  if (isUserLoading || (!isUserLoading && user)) {
+  
+  // While user is loading OR if user object exists, show loader
+  // This prevents the login form from flashing before redirecting
+  if (isUserLoading || user) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -169,8 +174,11 @@ function LoginPageContent() {
               </div>
             </div>
             <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              <GoogleIcon />
+              {isLoading ? (
+                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <GoogleIcon />
+              )}
               Continue with Google
             </Button>
           </div>

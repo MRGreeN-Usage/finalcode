@@ -11,16 +11,18 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
+    // If the initial auth check is happening, wait.
     if (isUserLoading) {
       return; 
     }
 
+    // After loading, if there's no user, redirect to login.
     if (!user) {
       router.push('/login');
-      return;
     }
   }, [user, isUserLoading, router]);
 
+  // While loading or if there's no user (before the redirect happens), show a loading screen.
   if (isUserLoading || !user) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
@@ -33,5 +35,6 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     );
   }
 
+  // If the user exists and loading is false, render the protected content.
   return <>{children}</>;
 }
