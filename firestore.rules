@@ -34,12 +34,12 @@ service cloud.firestore {
      * @description Secures user profile data.
      * @path /users/{userId}
      * @allow (create) Authenticated user can create their own profile if the userId matches their auth UID.
-     * @allow (get, update, delete) Authenticated user can only access their own profile data.
+     * @allow (read, update, delete) Authenticated user can only access their own profile data. `read` is required for subcollection queries.
      * @deny (list) Prevents listing all user profiles.
      * @principle Enforces document ownership for all operations.
      */
     match /users/{userId} {
-      allow get, update, delete: if isOwner(userId);
+      allow read, update, delete: if isOwner(userId);
       allow create: if isOwner(userId);
       allow list: if false;
     }
