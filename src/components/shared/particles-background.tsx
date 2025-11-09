@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 
 // A simple component that renders a single particle with CSS animations
 const Particle: React.FC<{ index: number }> = ({ index }) => {
@@ -21,8 +21,8 @@ export const ParticlesBackground: React.FC = () => {
               .particle {
                 position: absolute;
                 top: 0;
-                width: 5px;
-                height: 5px;
+                width: 3px;
+                height: 3px;
                 background: hsl(var(--primary) / 0.3); /* Use theme primary color with opacity */
                 border-radius: 50%;
                 opacity: 0;
