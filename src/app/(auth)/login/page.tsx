@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { useState, useEffect } from 'react';
 import { Logo } from '@/components/shared/logo';
 import { Loader2 } from 'lucide-react';
-import { useAuth, useUser, useFirestore } from '@/firebase';
+import { useAuth, useUser, useFirestore, useMemoFirebase } from '@/firebase';
 import {
   signInWithEmailAndPassword,
   GoogleAuthProvider,
@@ -17,7 +17,7 @@ import {
   UserCredential,
 } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 
 const GoogleIcon = () => (
   <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2">
@@ -51,31 +51,39 @@ export default function LoginPage() {
     const user = userCredential.user;
     const userDocRef = doc(firestore, 'users', user.uid);
 
+    // Use getDoc to check if the document already exists.
+    // This is to prevent overwriting existing user data on re-login.
     const userDocSnap = await getDoc(userDocRef);
     if (!userDocSnap.exists()) {
-      const userDoc = {
+      // Document doesn't exist, so create it.
+      await setDoc(userDocRef, {
         id: user.uid,
         email: user.email,
-        name: user.displayName || 'New User',
-        createdAt: new Date().toISOString(),
-      };
-      await setDoc(userDocRef, userDoc);
+        name: user.displayName || email.split('@')[0],
+        createdAt: serverTimestamp(), // Use server timestamp for consistency
+      });
     }
+    // If the document exists, we do nothing.
+    // The main layout's AuthGate will handle waiting for this document.
   };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    if (!auth) return;
+
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      await createUserProfile(userCredential);
-      // No longer need to push, useEffect will handle it
+      // Profile creation is now "fire and forget". We don't await it.
+      // The AuthGate in the main layout will handle waiting for the profile.
+      createUserProfile(userCredential);
     } catch (error: any) {
-      if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found') {
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+        // If login fails because the user doesn't exist, try creating a new account.
         try {
           const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-          await createUserProfile(userCredential);
-           // No longer need to push, useEffect will handle it
+          // Again, fire and forget. AuthGate will wait.
+          createUserProfile(userCredential);
         } catch (signupError: any) {
           console.error('Signup failed after login attempt:', signupError);
           toast({
@@ -99,11 +107,12 @@ export default function LoginPage() {
   
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
+    if (!auth) return;
     const provider = new GoogleAuthProvider();
     try {
       const userCredential = await signInWithPopup(auth, provider);
-      await createUserProfile(userCredential);
-       // No longer need to push, useEffect will handle it
+      // Fire and forget. AuthGate will wait.
+      createUserProfile(userCredential);
     } catch (error: any) {
       console.error("Google sign-in failed:", error);
       toast({
@@ -116,7 +125,9 @@ export default function LoginPage() {
     }
   }
 
-  if (isUserLoading || user) {
+  // The AuthGate component now handles the primary loading state after login,
+  // so we can simplify the loading indicator here.
+  if (isUserLoading || (!isUserLoading && user)) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
