@@ -10,6 +10,7 @@
  * - /users/{userId}: Stores user profile information.
  * - /users/{userId}/transactions/{transactionId}: Stores individual transaction records.
  * - /users/{userId}/categories/{categoryId}: Stores expense categories.
+ * - /users/{userId}/budgets/{budgetId}: Stores monthly category budgets.
  * - /users/{userId}/monthlySummaries/{monthlySummaryId}: Stores monthly financial summaries.
  *
  * Key Security Decisions:
@@ -60,6 +61,16 @@ service cloud.firestore {
      * @principle Enforces document ownership and existence for all operations.
      */
     match /users/{userId}/categories/{categoryId} {
+       allow read, write: if isOwner(userId) && exists(/databases/$(database)/documents/users/$(userId));
+    }
+
+    /**
+     * @description Secures budget data for a specific user.
+     * @path /users/{userId}/budgets/{budgetId}
+     * @allow Authenticated user can perform CRUD operations on their own budgets if their profile exists.
+     * @principle Enforces document ownership and existence for all operations.
+     */
+    match /users/{userId}/budgets/{budgetId} {
        allow read, write: if isOwner(userId) && exists(/databases/$(database)/documents/users/$(userId));
     }
 

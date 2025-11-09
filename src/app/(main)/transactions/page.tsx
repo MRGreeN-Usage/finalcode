@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { PlusCircle, FileDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { TransactionTable } from '@/components/transactions/transaction-table';
@@ -14,23 +14,41 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
-import { collection, query, orderBy, doc } from 'firebase/firestore';
+import { collection, query, orderBy, doc, where } from 'firebase/firestore';
+import { MonthSelector } from '@/components/dashboard/month-selector';
+import { addMonths, startOfMonth, endOfMonth, format } from 'date-fns';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function TransactionsPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | undefined>(undefined);
+  const [currentMonth, setCurrentMonth] = useState<Date | null>(null);
   const { user } = useUser();
   const firestore = useFirestore();
 
+  useEffect(() => {
+    setCurrentMonth(new Date());
+  }, []);
+
   const transactionsQuery = useMemoFirebase(() => {
-    if (!user || !firestore) return null;
+    if (!user || !firestore || !currentMonth) return null;
+    const start = startOfMonth(currentMonth);
+    const end = endOfMonth(currentMonth);
     return query(
       collection(firestore, 'users', user.uid, 'transactions'),
+      where('date', '>=', start.toISOString()),
+      where('date', '<=', end.toISOString()),
       orderBy('date', 'desc')
     );
-  }, [user, firestore]);
+  }, [user, firestore, currentMonth]);
 
   const { data: transactions, isLoading } = useCollection<Transaction>(transactionsQuery);
+  
+  const handleMonthChange = (direction: 'next' | 'prev') => {
+    setCurrentMonth((prev) => (prev ? addMonths(prev, direction === 'next' ? 1 : -1) : new Date()));
+  };
+
+  const formattedMonth = currentMonth ? format(currentMonth, 'MMMM yyyy') : '...';
 
   const handleAddTransaction = () => {
     setSelectedTransaction(undefined);
@@ -63,12 +81,20 @@ export default function TransactionsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Transactions</h1>
-          <p className="text-muted-foreground">Manage your income and expenses.</p>
+          <p className="text-muted-foreground">Your income and expenses for {formattedMonth}.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+           {currentMonth ? (
+            <MonthSelector 
+              currentMonth={currentMonth} 
+              onMonthChange={handleMonthChange}
+            />
+          ) : (
+              <Skeleton className="h-8 w-[170px]" />
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="gap-2" disabled={!transactions || transactions.length === 0}>
@@ -77,8 +103,8 @@ export default function TransactionsPage() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => transactions && exportToCsv(transactions, 'transactions.csv')}>Export as CSV</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => transactions && exportToTxt(transactions, 'transactions.txt', 'Transaction Report')}>Export as TXT</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => transactions && exportToCsv(transactions, `transactions-${format(currentMonth!, 'yyyy-MM')}.csv`)}>Export as CSV</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => transactions && exportToTxt(transactions, `transactions-${format(currentMonth!, 'yyyy-MM')}.txt`, `Transaction Report for ${formattedMonth}`)}>Export as TXT</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 

@@ -107,6 +107,46 @@
         "name"
       ]
     },
+    "Budget": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Budget",
+      "type": "object",
+      "description": "Represents a monthly budget for a specific category.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the budget."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Budget)"
+        },
+        "category": {
+          "type": "string",
+          "description": "The category for this budget."
+        },
+        "amount": {
+          "type": "number",
+          "description": "The budgeted amount for the month."
+        },
+        "month": {
+          "type": "number",
+          "description": "The month for which the budget is set (1-12)."
+        },
+        "year": {
+          "type": "number",
+          "description": "The year for which the budget is set."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "category",
+        "amount",
+        "month",
+        "year"
+      ]
+    },
     "MonthlySummary": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "MonthlySummary",
@@ -213,6 +253,26 @@
             {
               "name": "categoryId",
               "description": "The unique identifier for the category."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/budgets/{budgetId}",
+        "definition": {
+          "entityName": "Budget",
+          "schema": {
+            "$ref": "#/backend/entities/Budget"
+          },
+          "description": "Stores monthly budgets for specific categories.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "budgetId",
+              "description": "The unique identifier for the budget."
             }
           ]
         }

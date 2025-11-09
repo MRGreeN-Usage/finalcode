@@ -11,6 +11,15 @@ export interface Transaction {
   receiptUrl?: string;
 }
 
+export interface Budget {
+  id: string;
+  userId: string;
+  category: string;
+  amount: number;
+  month: number; // 1-12
+  year: number;
+}
+
 export type PieChartData = {
   name: string;
   value: number;
