@@ -8,13 +8,15 @@ import { Label } from '@/components/ui/label';
 import { useState, useEffect } from 'react';
 import { Logo } from '@/components/shared/logo';
 import { Loader2 } from 'lucide-react';
-import { FirebaseClientProvider, useAuth, useUser } from '@/firebase';
+import { FirebaseClientProvider, useAuth, useFirestore, useUser } from '@/firebase';
 import {
   signInWithEmailAndPassword,
   GoogleAuthProvider,
   signInWithPopup,
   createUserWithEmailAndPassword,
+  UserCredential,
 } from 'firebase/auth';
+import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 
 const GoogleIcon = () => (
@@ -31,9 +33,9 @@ function LoginPageContent() {
   const [email, setEmail] = useState('user@example.com');
   const [password, setPassword] = useState('password');
   const [isLoading, setIsLoading] = useState(false);
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const router = useRouter();
   const auth = useAuth();
+  const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
   const { toast } = useToast();
 
@@ -43,34 +45,53 @@ function LoginPageContent() {
     }
   }, [user, isUserLoading, router]);
 
+  const handleAuthSuccess = async (userCredential: UserCredential) => {
+    if (!firestore) return;
+    const user = userCredential.user;
+    const userDocRef = doc(firestore, 'users', user.uid);
+    
+    // Check if the user document already exists.
+    const docSnap = await getDoc(userDocRef);
+    if (!docSnap.exists()) {
+      // If it doesn't exist, create it and wait for the creation to complete.
+      try {
+        await setDoc(userDocRef, {
+          id: user.uid,
+          email: user.email,
+          name: user.displayName || user.email?.split('@')[0] || 'New User',
+          createdAt: serverTimestamp(),
+        });
+      } catch (error: any) {
+        toast({
+          variant: 'destructive',
+          title: 'Profile Creation Failed',
+          description: error.message,
+        });
+        return; // Stop execution if profile creation fails
+      }
+    }
+    // Only navigate after profile is guaranteed to exist.
+    router.push('/dashboard');
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!auth) return;
     setIsLoading(true);
 
     try {
-      // Try to sign in first
-      await signInWithEmailAndPassword(auth, email, password);
-      // AuthGate will handle profile creation and navigation
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      await handleAuthSuccess(userCredential);
     } catch (error: any) {
       if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
-        // If user doesn't exist, create a new account
         try {
-          await createUserWithEmailAndPassword(auth, email, password);
-          // AuthGate will handle profile creation and navigation
+          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+          await handleAuthSuccess(userCredential);
         } catch (signupError: any) {
-          toast({
-            variant: 'destructive',
-            title: 'Sign-up Failed',
-            description: signupError.message,
-          });
+          toast({ variant: 'destructive', title: 'Sign-up Failed', description: signupError.message });
         }
       } else {
-        toast({
-          variant: 'destructive',
-          title: 'Login Failed',
-          description: error.message,
-        });
+        toast({ variant: 'destructive', title: 'Login Failed', description: error.message });
       }
     } finally {
       setIsLoading(false);
@@ -79,19 +100,15 @@ function LoginPageContent() {
 
   const handleGoogleSignIn = async () => {
     if (!auth) return;
-    setIsGoogleLoading(true);
+    setIsLoading(true);
     const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
-      // AuthGate will handle profile creation and navigation
+      const userCredential = await signInWithPopup(auth, provider);
+      await handleAuthSuccess(userCredential);
     } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Google Sign-In Failed',
-        description: error.message,
-      });
+      toast({ variant: 'destructive', title: 'Google Sign-In Failed', description: error.message });
     } finally {
-      setIsGoogleLoading(false);
+      setIsLoading(false);
     }
   };
 
@@ -109,7 +126,7 @@ function LoginPageContent() {
         <CardHeader className="space-y-4 text-center">
           <Logo className="justify-center" />
           <CardTitle className="text-2xl">Welcome!</CardTitle>
-          <CardDescription>Enter your credentials below to log in or sign up.</CardDescription>
+          <CardDescription>Enter your credentials to continue.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4">
@@ -123,7 +140,7 @@ function LoginPageContent() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  disabled={isLoading || isGoogleLoading}
+                  disabled={isLoading}
                 />
               </div>
               <div className="grid gap-2">
@@ -136,12 +153,12 @@ function LoginPageContent() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  disabled={isLoading || isGoogleLoading}
+                  disabled={isLoading}
                 />
               </div>
-              <Button type="submit" className="w-full" disabled={isLoading || isGoogleLoading}>
+              <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Login or Sign Up
+                Login or Sign Up with Email
               </Button>
             </form>
             <div className="relative">
@@ -154,8 +171,9 @@ function LoginPageContent() {
                 </span>
               </div>
             </div>
-            <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading || isGoogleLoading}>
-              {isGoogleLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon />}
+            <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading}>
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              <GoogleIcon />
               Continue with Google
             </Button>
           </div>
