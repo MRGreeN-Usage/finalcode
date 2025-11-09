@@ -1,17 +1,15 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { useUser, useFirestore } from '@/firebase';
+import { useRouter, usePathname } from 'next/navigation';
+import { useEffect } from 'react';
+import { useUser } from '@/firebase';
 import { Loader2 } from 'lucide-react';
 import { Logo } from '@/components/shared/logo';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 export function AuthGate({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser();
-  const firestore = useFirestore();
   const router = useRouter();
-  const [isProfileReady, setIsProfileReady] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     // If auth state is still loading, do nothing yet.
@@ -19,64 +17,34 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // If there's no user, redirect to login.
-    if (!user) {
+    // If there's no user and we're not on the login page, redirect to login.
+    if (!user && pathname !== '/login') {
       router.push('/login');
-      return;
     }
+  }, [user, isUserLoading, router, pathname]);
 
-    // If firestore isn't initialized, wait.
-    if (!firestore) {
-      return;
-    }
-
-    // If profile is already marked as ready, don't re-run the check.
-    if (isProfileReady) {
-      return;
-    }
-    
-    // Check for the user profile document in Firestore.
-    const checkAndCreateUserProfile = async () => {
-      const userDocRef = doc(firestore, 'users', user.uid);
-      try {
-        const docSnap = await getDoc(userDocRef);
-        if (!docSnap.exists()) {
-          // Profile doesn't exist, so create it and wait for it to be set.
-          await setDoc(userDocRef, {
-            id: user.uid,
-            email: user.email,
-            name: user.displayName || user.email?.split('@')[0] || 'User',
-            createdAt: serverTimestamp(),
-          });
-        }
-        // Whether it existed or was just created, the profile is now ready.
-        setIsProfileReady(true);
-      } catch (error) {
-        console.error("AuthGate: Error checking or creating user profile:", error);
-        // Optional: handle error state, e.g., show an error message
-      }
-    };
-
-    checkAndCreateUserProfile();
-
-  }, [user, isUserLoading, firestore, router, isProfileReady]);
-
-
-  // Render a loading state if authentication is in progress or profile isn't ready.
-  if (isUserLoading || !isProfileReady) {
+  // Render a loading state if authentication is in progress.
+  if (isUserLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
           <Logo />
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-muted-foreground">
-            {isUserLoading ? 'Authenticating...' : 'Preparing your session...'}
-          </p>
+          <p className="text-muted-foreground">Authenticating...</p>
         </div>
       </div>
     );
   }
+  
+  // If user is not loaded and we are not on login page, show loading to prevent flicker
+  if (!user && pathname !== '/login') {
+    return (
+        <div className="flex h-screen w-full items-center justify-center bg-background">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+    )
+  }
 
-  // If auth is done and profile is ready, render the application.
+  // If auth is done, render the application.
   return <>{children}</>;
 }

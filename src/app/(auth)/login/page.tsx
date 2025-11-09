@@ -8,14 +8,16 @@ import { Label } from '@/components/ui/label';
 import { useState, useEffect } from 'react';
 import { Logo } from '@/components/shared/logo';
 import { Loader2 } from 'lucide-react';
-import { FirebaseClientProvider, useAuth, useUser } from '@/firebase';
+import { FirebaseClientProvider, useAuth, useUser, useFirestore } from '@/firebase';
 import {
   signInWithEmailAndPassword,
   GoogleAuthProvider,
   signInWithPopup,
   createUserWithEmailAndPassword,
+  type UserCredential,
 } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 const GoogleIcon = () => (
   <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2">
@@ -34,6 +36,7 @@ function LoginPageContent() {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const router = useRouter();
   const auth = useAuth();
+  const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
   const { toast } = useToast();
 
@@ -43,19 +46,45 @@ function LoginPageContent() {
     }
   }, [user, isUserLoading, router]);
 
+  const handleAuthSuccess = async (userCredential: UserCredential) => {
+    if (!firestore) return;
+    const user = userCredential.user;
+    const userDocRef = doc(firestore, 'users', user.uid);
+    
+    try {
+        const docSnap = await getDoc(userDocRef);
+        if (!docSnap.exists()) {
+            await setDoc(userDocRef, {
+                id: user.uid,
+                email: user.email,
+                name: user.displayName || user.email?.split('@')[0] || 'New User',
+                createdAt: serverTimestamp(),
+            });
+        }
+        router.push('/dashboard');
+    } catch (error: any) {
+        console.error('Failed to ensure user profile:', error);
+        toast({
+            variant: 'destructive',
+            title: 'Setup Failed',
+            description: 'Could not create or verify your user profile. Please try again.',
+        });
+    }
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!auth) return;
     setIsLoading(true);
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      // AuthGate will handle profile creation and redirect
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      await handleAuthSuccess(userCredential);
     } catch (error: any) {
       if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
         try {
-          await createUserWithEmailAndPassword(auth, email, password);
-          // AuthGate will handle profile creation and redirect
+          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+          await handleAuthSuccess(userCredential);
         } catch (signupError: any) {
           console.error('Signup failed:', signupError);
           toast({
@@ -82,8 +111,8 @@ function LoginPageContent() {
     setIsGoogleLoading(true);
     const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
-      // AuthGate will handle profile creation and redirect
+      const userCredential = await signInWithPopup(auth, provider);
+      await handleAuthSuccess(userCredential);
     } catch (error: any) {
       console.error('Google sign-in failed:', error);
       toast({
