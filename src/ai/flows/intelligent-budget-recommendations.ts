@@ -49,20 +49,23 @@ const prompt = ai.definePrompt({
   name: 'intelligentBudgetRecommendationsPrompt',
   input: {schema: IntelligentBudgetRecommendationsInputSchema},
   output: {schema: IntelligentBudgetRecommendationsOutputSchema},
-  prompt: `You are a personal finance advisor. Analyze the user's past spending habits and provide personalized budget recommendations.
+  prompt: `You are a personal finance advisor. Analyze the user's past spending habits from the last year and provide personalized budget recommendations for the upcoming month.
 
-  Consider the user's monthly income: {{{monthlyIncome}}}.
+  The user's stated monthly income is {{{monthlyIncome}}}.
 
-  Here are the user's recent transactions:
+  Here is a list of the user's transactions from the past year:
   {{#each transactions}}
   - Category: {{this.category}}, Amount: {{this.amount}}
   {{/each}}
 
-  Based on this data, provide specific and actionable recommendations for optimizing their budget. For each recommendation, include the category, the recommended budget amount, and a clear explanation of why this change is suggested. The goal is to help the user identify potential savings and make informed decisions about their spending habits.
+  Based on this historical data, provide specific and actionable budget recommendations for the main spending categories. The goal is to help the user identify areas where they can save money, optimize their spending, and make informed financial decisions. Your recommendations should be realistic, taking into account their income and past behavior.
 
-  Ensure that your recommendations are realistic and take into account current market prices and the users individual needs. Try to identify saving oppurtunities by reallocating funds across categories.
+  For each recommendation, include:
+  1. The spending category.
+  2. A recommended budget amount for that category for the next month.
+  3. A clear and concise reason for the recommendation, explaining how it's derived from their spending history (e.g., "based on your average spending of X, a budget of Y could save you Z").
 
-  Format your response as a JSON object with an array of recommendations.
+  Structure your response as a JSON object containing an array of recommendation objects.
   `,
 });
 
