@@ -12,8 +12,8 @@ import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { useCurrency } from '@/hooks/use-currency';
 import { useUser, useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { collection, doc, query, orderBy, limit } from 'firebase/firestore';
-import { format } from 'date-fns';
+import { collection, doc, query, where, orderBy } from 'firebase/firestore';
+import { format, subYears } from 'date-fns';
 import type { Transaction } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
 
@@ -30,10 +30,11 @@ export function RecommendationTool() {
 
   const transactionsQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
+    const oneYearAgo = subYears(new Date(), 1);
     return query(
       collection(firestore, 'users', user.uid, 'transactions'),
-      orderBy('date', 'desc'),
-      limit(100) // Fetch last 100 transactions for analysis
+      where('date', '>=', oneYearAgo.toISOString()),
+      orderBy('date', 'desc')
     );
   }, [user, firestore]);
 
