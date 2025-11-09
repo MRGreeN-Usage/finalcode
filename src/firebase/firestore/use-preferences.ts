@@ -1,6 +1,6 @@
 'use client';
 
-import { doc, updateDoc, setDoc } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
 import { useFirestore, useUser, useDoc, useMemoFirebase } from '@/firebase';
 import type { UserPreferences, UserProfile } from '@/lib/types';
 import { useCallback, useEffect } from 'react';

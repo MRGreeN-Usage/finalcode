@@ -23,6 +23,20 @@
           "type": "string",
           "description": "Timestamp indicating when the user account was created.",
           "format": "date-time"
+        },
+        "preferences": {
+            "type": "object",
+            "description": "User-specific application preferences.",
+            "properties": {
+                "currency": {
+                    "type": "string",
+                    "enum": ["USD", "EUR", "GBP", "JPY", "INR"]
+                },
+                "theme": {
+                    "type": "string",
+                    "enum": ["light", "dark", "auto"]
+                }
+            }
         }
       },
       "required": [
@@ -208,7 +222,7 @@
           "schema": {
             "$ref": "#/backend/entities/User"
           },
-          "description": "Stores user profile information. This collection uses the user's UID as the document ID.",
+          "description": "Stores user profile information, including app preferences. This collection uses the user's UID as the document ID.",
           "params": [
             {
               "name": "userId",

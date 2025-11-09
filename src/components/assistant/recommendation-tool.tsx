@@ -78,7 +78,7 @@ export function RecommendationTool() {
         year,
     };
 
-    setDocumentNonBlocking(budgetRef, budgetData);
+    setDocumentNonBlocking(budgetRef, budgetData, { merge: true });
 
     toast({
         title: 'Budget Applied!',
