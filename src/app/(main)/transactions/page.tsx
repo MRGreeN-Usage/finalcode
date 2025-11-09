@@ -86,14 +86,14 @@ export default function TransactionsPage() {
           <h1 className="text-2xl font-bold tracking-tight">Transactions</h1>
           <p className="text-muted-foreground">Your income and expenses for {formattedMonth}.</p>
         </div>
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
            {currentMonth ? (
             <MonthSelector 
               currentMonth={currentMonth} 
               onMonthChange={handleMonthChange}
             />
           ) : (
-              <Skeleton className="h-9 w-[200px]" />
+              <Skeleton className="h-9 w-full sm:w-[200px]" />
           )}
           <div className="flex items-center gap-2">
             <DropdownMenu>

@@ -53,12 +53,14 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 
               <div className="w-full flex-1" />
               
-              <Button variant="outline" size="sm" onClick={() => setIsQuickAddOpen(true)} className="shrink-0">
-                <PlusCircle className="h-4 w-4 mr-2" />
-                Quick Add
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => setIsQuickAddOpen(true)} className="shrink-0">
+                  <PlusCircle className="h-4 w-4 mr-2" />
+                  Quick Add
+                </Button>
 
-              <UserNav />
+                <UserNav />
+              </div>
             </header>
             <main className="flex-1 p-4 sm:p-6 bg-secondary/10 overflow-y-auto">
               {children}

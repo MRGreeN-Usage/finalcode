@@ -11,7 +11,9 @@ import type { Transaction } from '@/lib/types';
 import { exportToCsv, exportToTxt } from '@/lib/helpers';
 import { Button } from '@/components/ui/button';
 import { IncomeExpenseChart } from '@/components/dashboard/income-expense-chart';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { FileDown } from 'lucide-react';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 
 export default function ReportsPage() {
   const [currentMonth, setCurrentMonth] = useState<Date | null>(null);
@@ -52,38 +54,38 @@ export default function ReportsPage() {
           <h1 className="text-2xl font-bold tracking-tight">Analytics & Reports</h1>
           <p className="text-muted-foreground">Visualize your spending for {formattedMonth}</p>
         </div>
-        {currentMonth ? (
-          <MonthSelector 
-            currentMonth={currentMonth} 
-            onMonthChange={handleMonthChange}
-          />
-        ) : (
-          <Skeleton className="h-8 w-[170px]" />
-        )}
+        <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
+          {currentMonth ? (
+            <MonthSelector 
+              currentMonth={currentMonth} 
+              onMonthChange={handleMonthChange}
+            />
+          ) : (
+            <Skeleton className="h-9 w-full sm:w-[200px]" />
+          )}
+           <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                    variant="outline"
+                    className="w-full sm:w-auto"
+                    disabled={!monthTransactions || monthTransactions.length === 0}
+                >
+                    <FileDown className="h-4 w-4 mr-2" />
+                    Export Data
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                 <DropdownMenuItem onClick={() => monthTransactions && exportToCsv(monthTransactions, `transactions-${format(currentMonth!, 'yyyy-MM')}.csv`)}>
+                    Export as CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => monthTransactions && exportToTxt(monthTransactions, `transactions-${format(currentMonth!, 'yyyy-MM')}.txt`, 'Transaction Report')}>
+                    Export as TXT
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+           </DropdownMenu>
+        </div>
       </div>
       
-      <Card>
-        <CardHeader>
-            <CardTitle>Export Data</CardTitle>
-        </CardHeader>
-        <CardContent className="flex gap-2">
-            <Button 
-                variant="outline"
-                onClick={() => monthTransactions && exportToCsv(monthTransactions, `transactions-${format(currentMonth!, 'yyyy-MM')}.csv`)}
-                disabled={!monthTransactions || monthTransactions.length === 0}
-            >
-                Export as CSV
-            </Button>
-            <Button 
-                variant="outline"
-                onClick={() => monthTransactions && exportToTxt(monthTransactions, `transactions-${format(currentMonth!, 'yyyy-MM')}.txt`, 'Transaction Report')}
-                disabled={!monthTransactions || monthTransactions.length === 0}
-            >
-                Export as TXT
-            </Button>
-        </CardContent>
-      </Card>
-
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
         <div className="lg:col-span-2">
             <CategoryPieChart transactions={monthTransactions} isLoading={transactionsLoading} />

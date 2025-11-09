@@ -20,6 +20,7 @@ const navItems = [
   { href: '/budgets', icon: Wallet, label: 'Budgets' },
   { href: '/analytics', icon: AreaChart, label: 'Analytics' },
   { href: '/assistant', icon: Wand2, label: 'AI Assistant' },
+  { href: '/reports', icon: AreaChart, label: 'Reports' },
 ];
 
 const bottomNavItems = [

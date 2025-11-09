@@ -61,7 +61,7 @@ export default function DashboardPage() {
             onMonthChange={handleMonthChange}
           />
         ) : (
-            <Skeleton className="h-8 w-[200px]" />
+            <Skeleton className="h-9 w-[200px]" />
         )}
       </div>
 

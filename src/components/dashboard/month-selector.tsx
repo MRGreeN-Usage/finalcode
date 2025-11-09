@@ -9,7 +9,7 @@ interface MonthSelectorProps {
 
 export function MonthSelector({ currentMonth, onMonthChange }: MonthSelectorProps) {
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2 w-full justify-center sm:w-auto">
       <Button variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={() => onMonthChange('prev')}>
         <ChevronLeft className="h-4 w-4" />
         <span className="sr-only">Previous month</span>
