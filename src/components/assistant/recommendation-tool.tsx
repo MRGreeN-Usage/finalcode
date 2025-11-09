@@ -101,6 +101,8 @@ export function RecommendationTool() {
     });
     setAppliedBudgets(prev => [...prev, category]);
   }
+  
+  const canGenerate = !isLoading && !transactionsLoading && monthlyIncome && transactions && transactions.length > 0;
 
   return (
     <div className="grid gap-6 lg:grid-cols-3">
@@ -127,7 +129,7 @@ export function RecommendationTool() {
             </div>
             </CardContent>
             <CardFooter>
-            <Button onClick={handleGetRecommendations} disabled={isLoading || transactionsLoading || !monthlyIncome || !transactions || transactions.length === 0} className="w-full">
+            <Button onClick={handleGetRecommendations} disabled={!canGenerate} className="w-full">
                 {isLoading || transactionsLoading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
@@ -194,6 +196,12 @@ export function RecommendationTool() {
                         <Loader2 className="h-12 w-12 text-muted-foreground animate-spin" />
                         <p className="mt-4 text-lg font-semibold">Loading transaction data...</p>
                       </>
+                    ) : transactions && transactions.length === 0 ? (
+                        <>
+                            <Sparkles className="h-12 w-12 text-muted-foreground" />
+                            <p className="mt-4 text-lg font-semibold">No Data to Analyze</p>
+                            <p className="text-muted-foreground">Please add some transactions to get started with AI recommendations.</p>
+                        </>
                     ) : (
                       <>
                         <Sparkles className="h-12 w-12 text-muted-foreground" />
