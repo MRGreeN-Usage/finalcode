@@ -42,46 +42,46 @@ service cloud.firestore {
       allow read, update, delete: if isOwner(userId);
       allow create: if isOwner(userId);
       allow list: if false;
-    }
 
-    /**
-     * @description Secures transaction data for a specific user.
-     * @path /users/{userId}/transactions/{transactionId}
-     * @allow Authenticated user can perform CRUD operations on their own transactions if their profile exists.
-     * @principle Enforces document ownership and existence for all operations.
-     */
-    match /users/{userId}/transactions/{transactionId} {
-      allow read, write: if isOwner(userId) && exists(/databases/$(database)/documents/users/$(userId));
-    }
+      /**
+       * @description Secures transaction data for a specific user.
+       * @path /users/{userId}/transactions/{transactionId}
+       * @allow Authenticated user can perform CRUD operations on their own transactions if their profile exists.
+       * @principle Enforces document ownership and existence for all operations.
+       */
+      match /transactions/{transactionId} {
+        allow read, write: if isOwner(userId) && exists(/databases/$(database)/documents/users/$(userId));
+      }
 
-    /**
-     * @description Secures category data for a specific user.
-     * @path /users/{userId}/categories/{categoryId}
-     * @allow Authenticated user can perform CRUD operations on their own categories if their profile exists.
-     * @principle Enforces document ownership and existence for all operations.
-     */
-    match /users/{userId}/categories/{categoryId} {
-       allow read, write: if isOwner(userId) && exists(/databases/$(database)/documents/users/$(userId));
-    }
+      /**
+       * @description Secures category data for a specific user.
+       * @path /users/{userId}/categories/{categoryId}
+       * @allow Authenticated user can perform CRUD operations on their own categories if their profile exists.
+       * @principle Enforces document ownership and existence for all operations.
+       */
+      match /categories/{categoryId} {
+        allow read, write: if isOwner(userId) && exists(/databases/$(database)/documents/users/$(userId));
+      }
 
-    /**
-     * @description Secures budget data for a specific user.
-     * @path /users/{userId}/budgets/{budgetId}
-     * @allow Authenticated user can perform CRUD operations on their own budgets if their profile exists.
-     * @principle Enforces document ownership and existence for all operations.
-     */
-    match /users/{userId}/budgets/{budgetId} {
-       allow read, write: if isOwner(userId) && exists(/databases/$(database)/documents/users/$(userId));
-    }
+      /**
+       * @description Secures budget data for a specific user.
+       * @path /users/{userId}/budgets/{budgetId}
+       * @allow Authenticated user can perform CRUD operations on their own budgets if their profile exists.
+       * @principle Enforces document ownership and existence for all operations.
+       */
+      match /budgets/{budgetId} {
+        allow read, write: if isOwner(userId) && exists(/databases/$(database)/documents/users/$(userId));
+      }
 
-    /**
-     * @description Secures monthly summary data for a specific user.
-     * @path /users/{userId}/monthlySummaries/{monthlySummaryId}
-     * @allow Authenticated user can perform CRUD operations on their own summaries if their profile exists.
-     * @principle Enforces document ownership and existence for all operations.
-     */
-    match /users/{userId}/monthlySummaries/{monthlySummaryId} {
-       allow read, write: if isOwner(userId) && exists(/databases/$(database)/documents/users/$(userId));
+      /**
+       * @description Secures monthly summary data for a specific user.
+       * @path /users/{userId}/monthlySummaries/{monthlySummaryId}
+       * @allow Authenticated user can perform CRUD operations on their own summaries if their profile exists.
+       * @principle Enforces document ownership and existence for all operations.
+       */
+      match /monthlySummaries/{monthlySummaryId} {
+        allow read, write: if isOwner(userId) && exists(/databases/$(database)/documents/users/$(userId));
+      }
     }
   }
 }
