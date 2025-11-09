@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { useState, useEffect } from 'react';
 import { Logo } from '@/components/shared/logo';
 import { Loader2 } from 'lucide-react';
-import { useAuth, useUser, useFirestore, useMemoFirebase } from '@/firebase';
+import { useAuth, useUser, useFirestore } from '@/firebase';
 import {
   signInWithEmailAndPassword,
   GoogleAuthProvider,
@@ -41,30 +41,34 @@ export default function LoginPage() {
   const { toast } = useToast();
 
   useEffect(() => {
+    // If the user is successfully authenticated and their profile is loaded (handled by AuthGate),
+    // this effect will redirect them to the dashboard.
     if (!isUserLoading && user) {
       router.push('/dashboard');
     }
   }, [user, isUserLoading, router]);
 
+  // This function is now only responsible for creating the user profile document.
+  // It no longer needs to check for existence, as AuthGate will handle that.
   const createUserProfile = async (userCredential: UserCredential) => {
     if (!firestore) return;
     const user = userCredential.user;
     const userDocRef = doc(firestore, 'users', user.uid);
 
-    // Use getDoc to check if the document already exists.
-    // This is to prevent overwriting existing user data on re-login.
-    const userDocSnap = await getDoc(userDocRef);
-    if (!userDocSnap.exists()) {
-      // Document doesn't exist, so create it.
+    try {
+      // Use setDoc with { merge: true } which will create the doc if it doesn't exist,
+      // or update it if it does. This simplifies logic.
       await setDoc(userDocRef, {
         id: user.uid,
         email: user.email,
         name: user.displayName || email.split('@')[0],
-        createdAt: serverTimestamp(), // Use server timestamp for consistency
-      });
+        createdAt: serverTimestamp(),
+      }, { merge: true });
+    } catch (error) {
+        console.error("Error creating user profile:", error);
+        // We don't toast here as the user will be stuck at the AuthGate if this fails.
+        // The console error is sufficient for debugging.
     }
-    // If the document exists, we do nothing.
-    // The main layout's AuthGate will handle waiting for this document.
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -74,16 +78,14 @@ export default function LoginPage() {
 
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      // Profile creation is now "fire and forget". We don't await it.
-      // The AuthGate in the main layout will handle waiting for the profile.
-      createUserProfile(userCredential);
+      // The AuthGate in the main layout will now handle waiting for the profile.
+      // We just ensure the profile is created or updated after sign-in.
+      await createUserProfile(userCredential);
     } catch (error: any) {
       if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
-        // If login fails because the user doesn't exist, try creating a new account.
         try {
           const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-          // Again, fire and forget. AuthGate will wait.
-          createUserProfile(userCredential);
+          await createUserProfile(userCredential);
         } catch (signupError: any) {
           console.error('Signup failed after login attempt:', signupError);
           toast({
@@ -111,8 +113,8 @@ export default function LoginPage() {
     const provider = new GoogleAuthProvider();
     try {
       const userCredential = await signInWithPopup(auth, provider);
-      // Fire and forget. AuthGate will wait.
-      createUserProfile(userCredential);
+      // Let AuthGate handle waiting.
+      await createUserProfile(userCredential);
     } catch (error: any) {
       console.error("Google sign-in failed:", error);
       toast({
@@ -125,8 +127,8 @@ export default function LoginPage() {
     }
   }
 
-  // The AuthGate component now handles the primary loading state after login,
-  // so we can simplify the loading indicator here.
+  // The AuthGate component handles the primary loading state after login.
+  // We only show a loader here if the user is already logged in and we are about to redirect.
   if (isUserLoading || (!isUserLoading && user)) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">

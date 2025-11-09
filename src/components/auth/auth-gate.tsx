@@ -41,7 +41,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   // We are loading if:
   // 1. The initial Firebase Auth check is running (`isUserLoading`).
   // 2. We have a user, but we are still waiting for their Firestore profile (`isProfileLoading`).
-  const isLoading = isUserLoading || (user && isProfileLoading);
+  const isLoading = isUserLoading || (!!user && isProfileLoading);
 
   // While loading, show a full-screen loader.
   if (isLoading) {
@@ -63,6 +63,21 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
   
+  // If we have a user but no profile (and we're not loading anymore), it might mean
+  // the profile creation is pending. We stay in a loading state or redirect.
+  // For now, showing the loader is safest to prevent rendering a broken UI.
+  if (user && !userProfile) {
+     return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <Logo />
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Finalizing your setup...</p>
+        </div>
+      </div>
+    );
+  }
+
   // In any other case (e.g., redirecting), render nothing.
   return null;
 }
