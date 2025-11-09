@@ -12,23 +12,19 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import type { Transaction, TransactionCategory } from '@/lib/types';
+import type { Transaction, TransactionCategory, Category } from '@/lib/types';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
-import { CalendarIcon, Loader2, Upload } from 'lucide-react';
+import { CalendarIcon, Loader2, Upload, Check, ChevronsUpDown } from 'lucide-react';
 import { Calendar } from '../ui/calendar';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection } from 'firebase/firestore';
 
-const categories: TransactionCategory[] = ['Food', 'Transport', 'Shopping', 'Housing', 'Health', 'Entertainment', 'Income', 'Other'];
+const defaultCategories: TransactionCategory[] = ['Food', 'Transport', 'Shopping', 'Housing', 'Health', 'Entertainment', 'Other'];
 
 interface TransactionDialogProps {
   isOpen: boolean;
@@ -40,11 +36,32 @@ interface TransactionDialogProps {
 export function TransactionDialog({ isOpen, setIsOpen, onSave, transaction }: TransactionDialogProps) {
   const [type, setType] = useState<'income' | 'expense'>('expense');
   const [amount, setAmount] = useState('');
-  const [category, setCategory] = useState<TransactionCategory>('Food');
+  const [category, setCategory] = useState('Food');
   const [description, setDescription] = useState('');
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [isLoading, setIsLoading] = useState(false);
+  const [isCategoryPopoverOpen, setIsCategoryPopoverOpen] = useState(false);
   const { toast } = useToast();
+  
+  const { user } = useUser();
+  const firestore = useFirestore();
+
+  const categoriesQuery = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return collection(firestore, 'users', user.uid, 'categories');
+  }, [user, firestore]);
+
+  const { data: customCategories } = useCollection<Category>(categoriesQuery);
+
+  const allCategories = [
+    { value: 'Income', label: 'Income' },
+    ...defaultCategories.map(c => ({ value: c, label: c })),
+    ...(customCategories?.map(c => ({ value: c.name, label: c.name })) || [])
+  ].filter((v, i, a) => a.findIndex(t => (t.value === v.value)) === i); // Unique categories
+
+  const filteredCategories = type === 'income' 
+    ? [{ value: 'Income', label: 'Income' }]
+    : allCategories.filter(c => c.value !== 'Income');
 
   useEffect(() => {
     if (transaction) {
@@ -54,7 +71,6 @@ export function TransactionDialog({ isOpen, setIsOpen, onSave, transaction }: Tr
       setDescription(transaction.description);
       setDate(new Date(transaction.date));
     } else {
-      // Reset form when opening for a new transaction
       setType('expense');
       setAmount('');
       setCategory('Food');
@@ -62,6 +78,16 @@ export function TransactionDialog({ isOpen, setIsOpen, onSave, transaction }: Tr
       setDate(new Date());
     }
   }, [transaction, isOpen]);
+  
+  useEffect(() => {
+    if (type === 'income') {
+      setCategory('Income');
+    } else {
+      if (category === 'Income') {
+        setCategory('Food');
+      }
+    }
+  }, [type, category]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,18 +126,11 @@ export function TransactionDialog({ isOpen, setIsOpen, onSave, transaction }: Tr
     }
   };
   
-  const filteredCategories = type === 'income' ? ['Income'] : categories.filter(c => c !== 'Income');
-
-  useEffect(() => {
-    if (type === 'income') {
-      setCategory('Income');
-    } else {
-      if (category === 'Income') {
-        setCategory('Food');
-      }
-    }
-  }, [type, category]);
-
+  const handleCategorySelect = (currentValue: string) => {
+    const existingCategory = allCategories.find(c => c.value.toLowerCase() === currentValue.toLowerCase());
+    setCategory(existingCategory ? existingCategory.value : currentValue);
+    setIsCategoryPopoverOpen(false);
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -143,16 +162,55 @@ export function TransactionDialog({ isOpen, setIsOpen, onSave, transaction }: Tr
             </div>
              <div className="grid gap-2">
                 <Label htmlFor="category">Category</Label>
-                <Select value={category} onValueChange={(value: TransactionCategory) => setCategory(value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {filteredCategories.map((cat) => (
-                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                 <Popover open={isCategoryPopoverOpen} onOpenChange={setIsCategoryPopoverOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={isCategoryPopoverOpen}
+                      className="w-full justify-between"
+                      disabled={type==='income'}
+                    >
+                      {category || "Select category..."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[200px] p-0">
+                    <Command onValueChange={setCategory}>
+                      <CommandInput placeholder="Search or add category..." />
+                      <CommandList>
+                        <CommandEmpty>
+                           <Button
+                            variant="link"
+                            className="w-full h-auto p-2 text-sm"
+                            onClick={() => handleCategorySelect(
+                              (document.querySelector('[cmdk-input]') as HTMLInputElement)?.value
+                            )}
+                          >
+                            Add new category
+                          </Button>
+                        </CommandEmpty>
+                        <CommandGroup>
+                          {filteredCategories.map((cat) => (
+                            <CommandItem
+                              key={cat.value}
+                              value={cat.value}
+                              onSelect={handleCategorySelect}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  category === cat.value ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {cat.label}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
           </div>
           <div className="grid gap-2">

@@ -20,13 +20,13 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import type { Budget, TransactionCategory } from '@/lib/types';
+import type { Budget, TransactionCategory, Category } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
-import { useUser, useFirestore, setDocumentNonBlocking } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { useUser, useFirestore, setDocumentNonBlocking, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, doc } from 'firebase/firestore';
 import { format } from 'date-fns';
 
-const categories: TransactionCategory[] = ['Food', 'Transport', 'Shopping', 'Housing', 'Health', 'Entertainment', 'Other'];
+const defaultCategories: TransactionCategory[] = ['Food', 'Transport', 'Shopping', 'Housing', 'Health', 'Entertainment', 'Other'];
 
 interface BudgetDialogProps {
   isOpen: boolean;
@@ -38,24 +38,36 @@ interface BudgetDialogProps {
 }
 
 export function BudgetDialog({ isOpen, setIsOpen, budget, month, year, existingCategories }: BudgetDialogProps) {
-  const [category, setCategory] = useState<TransactionCategory>('Food');
+  const [category, setCategory] = useState<string>('Food');
   const [amount, setAmount] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const { user } = useUser();
   const firestore = useFirestore();
+  
+  const categoriesQuery = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return collection(firestore, 'users', user.uid, 'categories');
+  }, [user, firestore]);
+
+  const { data: customCategories } = useCollection<Category>(categoriesQuery);
+
+  const allCategories = [
+    ...defaultCategories,
+    ...(customCategories?.map(c => c.name) || [])
+  ].filter((v, i, a) => a.indexOf(v) === i); // Unique categories
+  
 
   useEffect(() => {
     if (budget) {
-      setCategory(budget.category as TransactionCategory);
+      setCategory(budget.category);
       setAmount(String(budget.amount));
     } else {
-      // Find the first available category
-      const firstAvailable = categories.find(c => !existingCategories.includes(c));
+      const firstAvailable = allCategories.find(c => !existingCategories.includes(c));
       setCategory(firstAvailable || 'Food');
       setAmount('');
     }
-  }, [budget, isOpen, existingCategories]);
+  }, [budget, isOpen, existingCategories, allCategories]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,7 +96,7 @@ export function BudgetDialog({ isOpen, setIsOpen, budget, month, year, existingC
           return;
       }
       
-      setDocumentNonBlocking(budgetRef, budgetData);
+      setDocumentNonBlocking(budgetRef, budgetData, { merge: true });
       
       toast({
         title: `Budget ${budget ? 'Updated' : 'Created'}`,
@@ -102,7 +114,7 @@ export function BudgetDialog({ isOpen, setIsOpen, budget, month, year, existingC
     }
   };
   
-  const availableCategories = budget ? categories : categories.filter(c => !existingCategories.includes(c));
+  const availableCategories = budget ? allCategories : allCategories.filter(c => !existingCategories.includes(c));
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -116,7 +128,7 @@ export function BudgetDialog({ isOpen, setIsOpen, budget, month, year, existingC
         <form onSubmit={handleSubmit} id="budget-form" className="grid gap-4 py-4">
           <div className="grid gap-2">
             <Label htmlFor="category">Category</Label>
-            <Select value={category} onValueChange={(v: TransactionCategory) => setCategory(v)} disabled={!!budget}>
+            <Select value={category} onValueChange={(v: string) => setCategory(v)} disabled={!!budget}>
               <SelectTrigger id="category">
                 <SelectValue placeholder="Select a category" />
               </SelectTrigger>

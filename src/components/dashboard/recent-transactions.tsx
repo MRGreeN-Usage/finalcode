@@ -1,13 +1,15 @@
+'use client';
+
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { ArrowUpRight, Utensils, Car, ShoppingBag, HeartPulse, Building, Gamepad2, MoreHorizontal, Briefcase } from 'lucide-react';
+import { ArrowUpRight, Utensils, Car, ShoppingBag, HeartPulse, Building, Gamepad2, MoreHorizontal, Briefcase, Wallet } from 'lucide-react';
 import Link from 'next/link';
-import type { Transaction, TransactionCategory } from '@/lib/types';
+import type { Transaction } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCurrency } from '@/hooks/use-currency';
 
-const categoryIcons: Record<TransactionCategory, React.ElementType> = {
+const categoryIcons: Record<string, React.ElementType> = {
     'Food': Utensils,
     'Transport': Car,
     'Shopping': ShoppingBag,
@@ -15,7 +17,7 @@ const categoryIcons: Record<TransactionCategory, React.ElementType> = {
     'Health': HeartPulse,
     'Entertainment': Gamepad2,
     'Income': Briefcase,
-    'Other': MoreHorizontal,
+    'Other': Wallet,
 };
 
 export function RecentTransactions({ transactions, isLoading }: { transactions: Transaction[], isLoading: boolean }) {
@@ -49,7 +51,7 @@ export function RecentTransactions({ transactions, isLoading }: { transactions: 
           <p className="text-sm text-muted-foreground text-center py-8">No transactions this month.</p>
         )}
         {!isLoading && transactions.map((tx) => {
-          const Icon = categoryIcons[tx.category] || MoreHorizontal;
+          const Icon = categoryIcons[tx.category] || Wallet;
           return (
             <div key={tx.id} className="flex items-center gap-4">
               <Avatar className="hidden h-9 w-9 sm:flex">

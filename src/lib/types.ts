@@ -1,11 +1,13 @@
 export type TransactionCategory = 'Food' | 'Transport' | 'Shopping' | 'Housing' | 'Health' | 'Entertainment' | 'Income' | 'Other';
 
+// This is now a general string to allow for custom categories.
+// The TransactionCategory type above can be used for default/pre-defined categories.
 export interface Transaction {
   id: string;
   userId: string;
   type: 'income' | 'expense';
   amount: number;
-  category: TransactionCategory;
+  category: string; 
   description: string;
   date: string; // ISO string
   receiptUrl?: string;
@@ -18,6 +20,12 @@ export interface Budget {
   amount: number;
   month: number; // 1-12
   year: number;
+}
+
+export interface Category {
+    id: string;
+    name: string;
+    userId: string | null; // Null for system categories
 }
 
 export type PieChartData = {

@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { MoreHorizontal, Trash2, Edit, Utensils, Car, ShoppingBag, HeartPulse, Building, Gamepad2, Briefcase, Wallet } from 'lucide-react';
-import type { Budget, Transaction, TransactionCategory } from '@/lib/types';
+import type { Budget, Transaction } from '@/lib/types';
 import { useCurrency } from '@/hooks/use-currency';
 import { Skeleton } from '../ui/skeleton';
 import {
@@ -28,7 +28,7 @@ import { useUser, useFirestore, deleteDocumentNonBlocking } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { BudgetDialog } from './budget-dialog';
 
-const categoryIcons: Record<TransactionCategory, React.ElementType> = {
+const categoryIcons: Record<string, React.ElementType> = {
     'Food': Utensils,
     'Transport': Car,
     'Shopping': ShoppingBag,
@@ -101,7 +101,7 @@ export function BudgetList({ budgets, transactions, isLoading }: BudgetListProps
     <>
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {aggregatedBudgets.map(budget => {
-        const Icon = categoryIcons[budget.category as TransactionCategory] || Wallet;
+        const Icon = categoryIcons[budget.category] || Wallet;
         const progressColor = budget.progress > 100 ? 'bg-destructive' : 'bg-primary';
 
         return (
