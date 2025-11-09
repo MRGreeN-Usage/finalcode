@@ -12,7 +12,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (isUserLoading) {
-      return; // Wait until user state is determined
+      return; 
     }
 
     if (!user) {
@@ -22,7 +22,6 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   }, [user, isUserLoading, router]);
 
   if (isUserLoading || !user) {
-    // Show a loading screen while checking auth state or if user is not logged in yet.
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
@@ -34,6 +33,5 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // If user is authenticated, render children.
   return <>{children}</>;
 }

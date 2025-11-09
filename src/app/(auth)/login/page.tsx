@@ -50,10 +50,8 @@ function LoginPageContent() {
     const user = userCredential.user;
     const userDocRef = doc(firestore, 'users', user.uid);
     
-    // Check if the user document already exists.
     const docSnap = await getDoc(userDocRef);
     if (!docSnap.exists()) {
-      // If it doesn't exist, create it and wait for the creation to complete.
       try {
         await setDoc(userDocRef, {
           id: user.uid,
@@ -67,10 +65,9 @@ function LoginPageContent() {
           title: 'Profile Creation Failed',
           description: error.message,
         });
-        return; // Stop execution if profile creation fails
+        return; 
       }
     }
-    // Only navigate after profile is guaranteed to exist.
     router.push('/dashboard');
   };
 

@@ -17,7 +17,6 @@
  * - No listing of all users is allowed.
  * - All write operations require authentication.
  * - Ownership is strictly enforced by matching the `userId` in the path to the requester's `auth.uid`.
- * - Access to subcollections is only granted if the parent user profile document exists.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -29,10 +28,6 @@ service cloud.firestore {
 
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
-    }
-    
-    function userHasProfile(userId) {
-      return exists(/databases/$(database)/documents/users/$(userId));
     }
 
     /**
@@ -52,41 +47,41 @@ service cloud.firestore {
     /**
      * @description Secures transaction data for a specific user.
      * @path /users/{userId}/transactions/{transactionId}
-     * @allow Authenticated user can perform CRUD operations on their own transactions, provided their profile exists.
+     * @allow Authenticated user can perform CRUD operations on their own transactions.
      * @principle Enforces document ownership for all operations.
      */
     match /users/{userId}/transactions/{transactionId} {
-      allow list, read, write: if isOwner(userId) && userHasProfile(userId);
+      allow read, write: if isOwner(userId);
     }
 
     /**
      * @description Secures category data for a specific user.
      * @path /users/{userId}/categories/{categoryId}
-     * @allow Authenticated user can perform CRUD operations on their own categories, provided their profile exists.
+     * @allow Authenticated user can perform CRUD operations on their own categories.
      * @principle Enforces document ownership for all operations.
      */
     match /users/{userId}/categories/{categoryId} {
-       allow list, read, write: if isOwner(userId) && userHasProfile(userId);
+       allow read, write: if isOwner(userId);
     }
 
     /**
      * @description Secures budget data for a specific user.
      * @path /users/{userId}/budgets/{budgetId}
-     * @allow Authenticated user can perform CRUD operations on their own budgets, provided their profile exists.
+     * @allow Authenticated user can perform CRUD operations on their own budgets.
      * @principle Enforces document ownership for all operations.
      */
     match /users/{userId}/budgets/{budgetId} {
-       allow list, read, write: if isOwner(userId) && userHasProfile(userId);
+       allow read, write: if isOwner(userId);
     }
 
     /**
      * @description Secures monthly summary data for a specific user.
      * @path /users/{userId}/monthlySummaries/{monthlySummaryId}
-     * @allow Authenticated user can perform CRUD operations on their own summaries, provided their profile exists.
+     * @allow Authenticated user can perform CRUD operations on their own summaries.
      * @principle Enforces document ownership for all operations.
      */
     match /users/{userId}/monthlySummaries/{monthlySummaryId} {
-       allow list, read, write: if isOwner(userId) && userHasProfile(userId);
+       allow read, write: if isOwner(userId);
     }
   }
 }
