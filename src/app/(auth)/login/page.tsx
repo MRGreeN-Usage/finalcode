@@ -14,11 +14,8 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   createUserWithEmailAndPassword,
-  type User,
 } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
-import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
-import { useFirestore } from '@/firebase';
 
 const GoogleIcon = () => (
   <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2">
@@ -37,7 +34,6 @@ function LoginPageContent() {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const router = useRouter();
   const auth = useAuth();
-  const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
   const { toast } = useToast();
 
@@ -47,52 +43,21 @@ function LoginPageContent() {
     }
   }, [user, isUserLoading, router]);
 
-  const handleAuthSuccess = async (user: User) => {
-    if (!firestore) return;
-    const userDocRef = doc(firestore, 'users', user.uid);
-    
-    try {
-        const docSnap = await getDoc(userDocRef);
-        if (!docSnap.exists()) {
-            await setDoc(userDocRef, {
-                id: user.uid,
-                email: user.email,
-                name: user.displayName || user.email?.split('@')[0] || 'New User',
-                createdAt: serverTimestamp(),
-            });
-        }
-    } catch (error) {
-        console.error("Error ensuring user profile exists:", error);
-        toast({
-            variant: 'destructive',
-            title: 'Profile Error',
-            description: 'Could not create or verify your user profile.',
-        });
-        // Optionally, sign the user out to prevent being in a broken state
-        if (auth) {
-            await auth.signOut();
-        }
-        return; // Stop execution
-    }
-
-    router.push('/dashboard');
-  };
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!auth) return;
     setIsLoading(true);
 
     try {
-      // First, try to sign in
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      await handleAuthSuccess(userCredential.user);
+      // Try to sign in first
+      await signInWithEmailAndPassword(auth, email, password);
+      // AuthGate will handle profile creation and navigation
     } catch (error: any) {
-      // If user not found, try to create a new account
       if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+        // If user doesn't exist, create a new account
         try {
-          const newUserCredential = await createUserWithEmailAndPassword(auth, email, password);
-          await handleAuthSuccess(newUserCredential.user);
+          await createUserWithEmailAndPassword(auth, email, password);
+          // AuthGate will handle profile creation and navigation
         } catch (signupError: any) {
           toast({
             variant: 'destructive',
@@ -117,8 +82,8 @@ function LoginPageContent() {
     setIsGoogleLoading(true);
     const provider = new GoogleAuthProvider();
     try {
-      const result = await signInWithPopup(auth, provider);
-      await handleAuthSuccess(result.user);
+      await signInWithPopup(auth, provider);
+      // AuthGate will handle profile creation and navigation
     } catch (error: any) {
       toast({
         variant: 'destructive',
