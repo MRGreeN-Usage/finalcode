@@ -6,8 +6,8 @@ const Particle: React.FC<{ index: number }> = ({ index }) => {
   // Use random values for unique animation properties for each particle
   const style: React.CSSProperties = {
     left: `${Math.random() * 100}%`,
-    animationDuration: `${Math.random() * 5 + 5}s`, // Duration between 5 and 10 seconds
-    animationDelay: `${Math.random() * 5}s`,      // Delay up to 5 seconds
+    animationDuration: `${Math.random() * 10 + 10}s`, // Duration between 10 and 20 seconds
+    animationDelay: `${Math.random() * 10}s`,      // Delay up to 10 seconds
   };
   return <div className="particle" style={style} />;
 };
@@ -20,30 +20,30 @@ export const ParticlesBackground: React.FC = () => {
             <style jsx>{`
               .particle {
                 position: absolute;
-                bottom: 0;
-                width: 10px;
-                height: 10px;
+                top: 0;
+                width: 5px;
+                height: 5px;
                 background: hsl(var(--primary) / 0.3); /* Use theme primary color with opacity */
                 border-radius: 50%;
                 opacity: 0;
-                animation: rise 10s infinite linear;
+                animation: fall 20s infinite linear;
               }
               
-              @keyframes rise {
+              @keyframes fall {
                 0% {
-                  transform: translateY(0);
+                  transform: translateY(-10vh);
                   opacity: 0;
                 }
                 10% {
                   opacity: 1;
                 }
                 100% {
-                  transform: translateY(-100vh);
+                  transform: translateY(110vh);
                   opacity: 0;
                 }
               }
             `}</style>
-            {[...Array(50)].map((_, i) => (
+            {[...Array(75)].map((_, i) => (
               <Particle key={i} index={i} />
             ))}
         </div>
