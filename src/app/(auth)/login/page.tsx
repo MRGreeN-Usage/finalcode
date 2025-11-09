@@ -8,16 +8,14 @@ import { Label } from '@/components/ui/label';
 import { useState, useEffect } from 'react';
 import { Logo } from '@/components/shared/logo';
 import { Loader2 } from 'lucide-react';
-import { useAuth, useUser, useFirestore } from '@/firebase';
+import { useAuth, useUser } from '@/firebase';
 import {
   signInWithEmailAndPassword,
   GoogleAuthProvider,
   signInWithPopup,
   createUserWithEmailAndPassword,
-  User,
 } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
-import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 
 const GoogleIcon = () => (
   <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2">
@@ -36,7 +34,6 @@ export default function LoginPage() {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const router = useRouter();
   const auth = useAuth();
-  const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
   const { toast } = useToast();
 
@@ -46,41 +43,38 @@ export default function LoginPage() {
     }
   }, [user, isUserLoading, router]);
 
-  const ensureUserProfile = async (user: User) => {
-    if (!firestore) return;
-    const userDocRef = doc(firestore, 'users', user.uid);
-    const docSnap = await getDoc(userDocRef);
-    if (!docSnap.exists()) {
-      await setDoc(userDocRef, {
-        id: user.uid,
-        email: user.email,
-        name: user.displayName || user.email?.split('@')[0],
-        createdAt: serverTimestamp(),
+
+  const handleAuthAction = async (authPromise: Promise<any>) => {
+    try {
+      await authPromise;
+      // AuthGate will handle profile creation and redirection
+    } catch (error: any) {
+      console.error('Authentication failed:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Authentication Failed',
+        description: error.message,
       });
     }
   };
 
-  const handleAuthSuccess = async (user: User) => {
-    await ensureUserProfile(user);
-    router.push('/dashboard');
-  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     if (!auth) return;
+    setIsLoading(true);
 
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      await handleAuthSuccess(userCredential.user);
+      await signInWithEmailAndPassword(auth, email, password);
+      // On success, useEffect will redirect to dashboard, and AuthGate will ensure profile
     } catch (error: any) {
       if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+        // If login fails because user doesn't exist, try creating a new account
         try {
-          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-          await handleAuthSuccess(userCredential.user);
+          await createUserWithEmailAndPassword(auth, email, password);
         } catch (signupError: any) {
-          console.error('Signup failed:', signupError);
-          toast({
+           console.error('Signup failed:', signupError);
+           toast({
             variant: 'destructive',
             title: 'Sign-up Failed',
             description: signupError.message,
@@ -89,23 +83,23 @@ export default function LoginPage() {
       } else {
         console.error('Login failed:', error);
         toast({
-          variant: 'destructive',
-          title: 'Login Failed',
-          description: error.message,
+            variant: 'destructive',
+            title: 'Login Failed',
+            description: error.message,
         });
       }
     } finally {
-      setIsLoading(false);
+        setIsLoading(false);
     }
   };
   
   const handleGoogleSignIn = async () => {
-    setIsGoogleLoading(true);
     if (!auth) return;
+    setIsGoogleLoading(true);
     const provider = new GoogleAuthProvider();
     try {
-      const userCredential = await signInWithPopup(auth, provider);
-      await handleAuthSuccess(userCredential.user);
+      await signInWithPopup(auth, provider);
+      // On success, useEffect will redirect to dashboard, and AuthGate will ensure profile
     } catch (error: any) {
       console.error("Google sign-in failed:", error);
       toast({
@@ -114,7 +108,7 @@ export default function LoginPage() {
         description: error.message,
       });
     } finally {
-      setIsGoogleLoading(false);
+        setIsGoogleLoading(false);
     }
   }
 

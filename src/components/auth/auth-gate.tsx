@@ -14,47 +14,58 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const [isProfileReady, setIsProfileReady] = useState(false);
 
   useEffect(() => {
+    // If auth state is still loading, do nothing yet.
     if (isUserLoading) {
-      return; // Wait for user authentication to settle
+      return;
     }
 
+    // If there's no user, redirect to login.
     if (!user) {
       router.push('/login');
       return;
     }
 
+    // If firestore isn't initialized, wait.
     if (!firestore) {
-        // Firestore is not ready yet, wait.
-        return;
+      return;
     }
 
+    // If user is authenticated and profile is already checked, do nothing.
+    if (isProfileReady) {
+      return;
+    }
+    
+    // Check for the user profile document in Firestore.
     const checkAndCreateUserProfile = async () => {
       const userDocRef = doc(firestore, 'users', user.uid);
       try {
         const docSnap = await getDoc(userDocRef);
         if (docSnap.exists()) {
+          // Profile exists, we are ready to proceed.
           setIsProfileReady(true);
         } else {
-          // Profile doesn't exist, so create it
+          // Profile doesn't exist, so create it.
           await setDoc(userDocRef, {
             id: user.uid,
             email: user.email,
             name: user.displayName || user.email?.split('@')[0],
             createdAt: serverTimestamp(),
           }, { merge: true });
-          setIsProfileReady(true); // Profile is now ready
+          // After creating, mark profile as ready.
+          setIsProfileReady(true);
         }
       } catch (error) {
-        console.error("Error checking or creating user profile:", error);
-        // Potentially handle this error, e.g., by showing an error message
-        // For now, we'll assume it might be a transient issue and not block forever
+        console.error("AuthGate: Error checking or creating user profile:", error);
+        // Optional: handle error state, e.g., show an error message
       }
     };
 
     checkAndCreateUserProfile();
 
-  }, [user, isUserLoading, firestore, router]);
+  }, [user, isUserLoading, firestore, router, isProfileReady]);
 
+
+  // Render a loading state if authentication is in progress or profile isn't ready.
   if (isUserLoading || !isProfileReady) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
@@ -69,11 +80,6 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // If loading is finished and profile is ready, render the children.
-  if (user && isProfileReady) {
-    return <>{children}</>;
-  }
-
-  // Fallback, should ideally not be reached if logic is correct
-  return null;
+  // If auth is done and profile is ready, render the application.
+  return <>{children}</>;
 }
