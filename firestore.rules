@@ -4,7 +4,6 @@
  * Core Philosophy:
  * This ruleset enforces a strict user-ownership model. Each user has exclusive access to their
  * profile data, transactions, categories, budgets, and monthly summaries. No cross-user access is permitted.
- * A user's profile document at /users/{userId} must exist for them to access any of their own data.
  *
  * Data Structure:
  * All data is nested under `/users/{userId}`, ensuring clear ownership and simplified security rules.
@@ -18,7 +17,6 @@
  * - No listing of all users is allowed.
  * - All write operations require authentication.
  * - Ownership is strictly enforced by matching the `userId` in the path to the requester's `auth.uid`.
- * - The existence of a user's profile is a prerequisite for any data access.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -32,10 +30,6 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    function userHasProfile(userId) {
-      return exists(/databases/$(database)/documents/users/$(userId));
-    }
-
     /**
      * @description Secures user profile data.
      * @path /users/{userId}
@@ -45,51 +39,49 @@ service cloud.firestore {
      * @principle Enforces document ownership for all operations.
      */
     match /users/{userId} {
-      allow get: if isOwner(userId);
-      allow list: if false;
+      allow get, update, delete: if isOwner(userId);
       allow create: if isOwner(userId);
-      allow update: if isOwner(userId);
-      allow delete: if isOwner(userId);
+      allow list: if false;
     }
 
     /**
      * @description Secures transaction data for a specific user.
      * @path /users/{userId}/transactions/{transactionId}
-     * @allow Authenticated user can perform CRUD operations on their own transactions if their profile exists.
-     * @principle Enforces document ownership and profile existence for all operations.
+     * @allow Authenticated user can perform CRUD operations on their own transactions.
+     * @principle Enforces document ownership for all operations.
      */
     match /users/{userId}/transactions/{transactionId} {
-      allow list, read, write: if isOwner(userId) && userHasProfile(userId);
+      allow list, read, write: if isOwner(userId);
     }
 
     /**
      * @description Secures category data for a specific user.
      * @path /users/{userId}/categories/{categoryId}
-     * @allow Authenticated user can perform CRUD operations on their own categories if their profile exists.
-     * @principle Enforces document ownership and profile existence for all operations.
+     * @allow Authenticated user can perform CRUD operations on their own categories.
+     * @principle Enforces document ownership for all operations.
      */
     match /users/{userId}/categories/{categoryId} {
-       allow list, read, write: if isOwner(userId) && userHasProfile(userId);
+       allow list, read, write: if isOwner(userId);
     }
 
     /**
      * @description Secures budget data for a specific user.
      * @path /users/{userId}/budgets/{budgetId}
-     * @allow Authenticated user can perform CRUD operations on their own budgets if their profile exists.
-     * @principle Enforces document ownership and profile existence for all operations.
+     * @allow Authenticated user can perform CRUD operations on their own budgets.
+     * @principle Enforces document ownership for all operations.
      */
     match /users/{userId}/budgets/{budgetId} {
-       allow list, read, write: if isOwner(userId) && userHasProfile(userId);
+       allow list, read, write: if isOwner(userId);
     }
 
     /**
      * @description Secures monthly summary data for a specific user.
      * @path /users/{userId}/monthlySummaries/{monthlySummaryId}
-     * @allow Authenticated user can perform CRUD operations on their own summaries if their profile exists.
-     * @principle Enforces document ownership and profile existence for all operations.
+     * @allow Authenticated user can perform CRUD operations on their own summaries.
+     * @principle Enforces document ownership for all operations.
      */
     match /users/{userId}/monthlySummaries/{monthlySummaryId} {
-       allow list, read, write: if isOwner(userId) && userHasProfile(userId);
+       allow list, read, write: if isOwner(userId);
     }
   }
 }
