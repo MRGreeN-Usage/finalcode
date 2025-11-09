@@ -3,6 +3,7 @@ import React, { useEffect, useRef } from 'react';
 
 export const ParticlesBackground: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const mouse = useRef({ x: 0, y: 0 });
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -15,10 +16,19 @@ export const ParticlesBackground: React.FC = () => {
         let height = canvas.height = window.innerHeight;
         let particles: Particle[] = [];
 
-        window.addEventListener('resize', () => {
+        const handleMouseMove = (event: MouseEvent) => {
+            mouse.current.x = event.x;
+            mouse.current.y = event.y;
+        };
+
+        const handleResize = () => {
             width = canvas.width = window.innerWidth;
             height = canvas.height = window.innerHeight;
-        });
+            init(); // Re-initialize particles on resize
+        };
+
+        window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('resize', handleResize);
 
         class Particle {
             x: number;
@@ -72,6 +82,26 @@ export const ParticlesBackground: React.FC = () => {
             }
         }
 
+        function connect() {
+            if (!ctx) return;
+            let opacityValue = 1;
+            for (let a = 0; a < particles.length; a++) {
+                for (let b = a; b < particles.length; b++) {
+                    let distance = ((particles[a].x - particles[b].x) * (particles[a].x - particles[b].x))
+                                 + ((particles[a].y - particles[b].y) * (particles[a].y - particles[b].y));
+                    if (distance < (width/7) * (height/7)) {
+                        opacityValue = 1 - (distance/20000);
+                        ctx.strokeStyle = `hsla(var(--primary-rgb), ${opacityValue})`;
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.moveTo(particles[a].x, particles[a].y);
+                        ctx.lineTo(particles[b].x, particles[b].y);
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+
         function animate() {
             requestAnimationFrame(animate);
             if (!ctx) return;
@@ -80,13 +110,22 @@ export const ParticlesBackground: React.FC = () => {
             for (let i = 0; i < particles.length; i++) {
                 particles[i].update();
             }
+            connect();
         }
 
+        // Add primary-rgb to root for hsla usage
+        const primaryHsl = getComputedStyle(document.documentElement).getPropertyValue('--primary');
+        const hslValues = primaryHsl.match(/\d+/g);
+        if (hslValues) {
+            document.documentElement.style.setProperty('--primary-rgb', `${hslValues[0]}, ${hslValues[1]}%, ${hslValues[2]}%`);
+        }
+        
         init();
         animate();
 
         return () => {
-            window.removeEventListener('resize', () => {});
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('resize', handleResize);
         }
     }, []);
 

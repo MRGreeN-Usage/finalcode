@@ -9,15 +9,19 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { updateProfile, sendPasswordResetEmail } from 'firebase/auth';
+import { updateProfile, sendPasswordResetEmail, signOut } from 'firebase/auth';
 import { doc, updateDoc } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
 import type { Currency, Theme } from '@/lib/types';
+import { deleteUserData } from '@/ai/flows/delete-user-data';
+import { useRouter } from 'next/navigation';
+
 
 export default function SettingsPage() {
     const { user } = useUser();
     const auth = useAuth();
     const firestore = useFirestore();
+    const router = useRouter();
     const { toast } = useToast();
     const { preferences, updatePreferences, isPreferencesLoading } = usePreferences();
 
@@ -28,6 +32,7 @@ export default function SettingsPage() {
     const [theme, setTheme] = useState<Theme>('auto');
     const [isSavingPrefs, setIsSavingPrefs] = useState(false);
     const [isSendingReset, setIsSendingReset] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     useEffect(() => {
         if (user?.displayName) {
@@ -98,12 +103,35 @@ export default function SettingsPage() {
         }
     };
 
-    const handleClearData = () => {
-        console.log("Clearing all user data...");
-        toast({
-            title: 'Data Cleared',
-            description: 'All your data has been scheduled for deletion.',
-        });
+    const handleClearData = async () => {
+      if (!user) {
+          toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in to perform this action.' });
+          return;
+      }
+      setIsDeleting(true);
+      try {
+          await deleteUserData({ userId: user.uid });
+          toast({
+              title: 'Data Deletion Initiated',
+              description: 'Your data has been successfully cleared. You will now be logged out.',
+          });
+
+          // Wait a moment for the toast to be seen, then log out.
+          setTimeout(async () => {
+              if(auth) {
+                await signOut(auth);
+                router.push('/login');
+              }
+          }, 3000);
+
+      } catch (error: any) {
+          toast({
+              variant: 'destructive',
+              title: 'Deletion Failed',
+              description: error.message || 'There was an error deleting your data. Please try again.',
+          });
+          setIsDeleting(false);
+      }
     }
     
     return (
@@ -192,19 +220,22 @@ export default function SettingsPage() {
                 <CardContent>
                     <AlertDialog>
                         <AlertDialogTrigger asChild>
-                            <Button variant="destructive">Clear All Data</Button>
+                            <Button variant="destructive" disabled={isDeleting}>
+                                {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Clear All Data
+                            </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                             <AlertDialogHeader>
                                 <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                    This action cannot be undone. This will permanently delete all your transactions, budgets, and other associated data.
+                                    This action cannot be undone. This will permanently delete all your transactions, budgets, and other associated data from the server.
                                 </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={handleClearData}>
-                                    Yes, Clear Everything
+                                <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleClearData} disabled={isDeleting}>
+                                    {isDeleting ? 'Deleting...' : 'Yes, Clear Everything'}
                                 </AlertDialogAction>
                             </AlertDialogFooter>
                         </AlertDialogContent>
