@@ -30,12 +30,8 @@ export function RecommendationTool() {
 
   const transactionsQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
-    const oneYearAgo = subYears(new Date(), 1);
-    return query(
-      collection(firestore, 'users', user.uid, 'transactions'),
-      where('date', '>=', oneYearAgo.toISOString()),
-      orderBy('date', 'desc')
-    );
+    // Query all transactions to give the AI the most context
+    return collection(firestore, 'users', user.uid, 'transactions');
   }, [user, firestore]);
 
   const { data: transactions, isLoading: transactionsLoading } = useCollection<Transaction>(transactionsQuery);
