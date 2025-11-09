@@ -30,7 +30,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // If user is authenticated and profile is already checked, do nothing.
+    // If profile is already marked as ready, don't re-run the check.
     if (isProfileReady) {
       return;
     }
@@ -40,20 +40,17 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       const userDocRef = doc(firestore, 'users', user.uid);
       try {
         const docSnap = await getDoc(userDocRef);
-        if (docSnap.exists()) {
-          // Profile exists, we are ready to proceed.
-          setIsProfileReady(true);
-        } else {
-          // Profile doesn't exist, so create it.
+        if (!docSnap.exists()) {
+          // Profile doesn't exist, so create it and wait for it to be set.
           await setDoc(userDocRef, {
             id: user.uid,
             email: user.email,
-            name: user.displayName || user.email?.split('@')[0],
+            name: user.displayName || user.email?.split('@')[0] || 'User',
             createdAt: serverTimestamp(),
           });
-          // After creating, mark profile as ready.
-          setIsProfileReady(true);
         }
+        // Whether it existed or was just created, the profile is now ready.
+        setIsProfileReady(true);
       } catch (error) {
         console.error("AuthGate: Error checking or creating user profile:", error);
         // Optional: handle error state, e.g., show an error message
