@@ -79,7 +79,7 @@ export function BudgetList({ budgets, transactions, isLoading }: BudgetListProps
   
   if (isLoading) {
     return (
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {Array.from({ length: 3 }).map((_, i) => (
           <Card key={i}><CardHeader><Skeleton className="h-6 w-24 mb-2" /><Skeleton className="h-4 w-40" /></CardHeader><CardContent><Skeleton className="h-5 w-3/4 mb-2" /><Skeleton className="h-4 w-full" /><Skeleton className="h-5 w-1/2 mt-2" /></CardContent></Card>
         ))}
@@ -99,7 +99,7 @@ export function BudgetList({ budgets, transactions, isLoading }: BudgetListProps
 
   return (
     <>
-    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {aggregatedBudgets.map(budget => {
         const Icon = categoryIcons[budget.category as TransactionCategory] || Wallet;
         const progressColor = budget.progress > 100 ? 'bg-destructive' : 'bg-primary';
@@ -150,26 +150,28 @@ export function BudgetList({ budgets, transactions, isLoading }: BudgetListProps
       })}
     </div>
 
-    <BudgetDialog
-        isOpen={isEditDialogOpen}
-        setIsOpen={setIsEditDialogOpen}
-        budget={editingBudget}
-        month={editingBudget?.month || 0}
-        year={editingBudget?.year || 0}
-        existingCategories={budgets.map(b => b.category)}
-    />
+    {editingBudget && (
+      <BudgetDialog
+          isOpen={isEditDialogOpen}
+          setIsOpen={setIsEditDialogOpen}
+          budget={editingBudget}
+          month={editingBudget.month}
+          year={editingBudget.year}
+          existingCategories={budgets.map(b => b.category)}
+      />
+    )}
 
     <AlertDialog open={!!deletingBudgetId} onOpenChange={() => setDeletingBudgetId(null)}>
         <AlertDialogContent>
             <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-                This will permanently delete your budget for this category. This action cannot be undone.
-            </AlertDialogDescription>
+              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                  This will permanently delete your budget for this category. This action cannot be undone.
+              </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => handleDelete(deletingBudgetId!)}>Delete</AlertDialogAction>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={() => handleDelete(deletingBudgetId!)}>Delete</AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>
     </AlertDialog>

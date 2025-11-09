@@ -23,7 +23,8 @@ import { useToast } from '@/hooks/use-toast';
 import type { Budget, TransactionCategory } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 import { useUser, useFirestore, setDocumentNonBlocking } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import { doc } from 'firebase/firestore';
+import { format } from 'date-fns';
 
 const categories: TransactionCategory[] = ['Food', 'Transport', 'Shopping', 'Housing', 'Health', 'Entertainment', 'Other'];
 
@@ -109,7 +110,7 @@ export function BudgetDialog({ isOpen, setIsOpen, budget, month, year, existingC
         <DialogHeader>
           <DialogTitle>{budget ? 'Edit Budget' : 'Create New Budget'}</DialogTitle>
           <DialogDescription>
-            {budget ? 'Update the amount for this budget.' : `Set a spending limit for a category for ${month}/${year}.`}
+            {budget ? `Update the amount for this budget for ${format(new Date(year, month - 1), 'MMMM yyyy')}.` : `Set a spending limit for a category for ${format(new Date(year, month - 1), 'MMMM yyyy')}.`}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} id="budget-form" className="grid gap-4 py-4">
