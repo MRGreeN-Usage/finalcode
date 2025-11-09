@@ -5,11 +5,15 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, Sparkles, Wand2 } from 'lucide-react';
+import { Loader2, Sparkles, Wand2, CheckCircle } from 'lucide-react';
 import type { IntelligentBudgetRecommendationsInput, IntelligentBudgetRecommendationsOutput } from '@/ai/flows/intelligent-budget-recommendations';
 import { intelligentBudgetRecommendations } from '@/ai/flows/intelligent-budget-recommendations';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { useCurrency } from '@/hooks/use-currency';
+import { useUser, useFirestore, setDocumentNonBlocking } from '@/firebase';
+import { useToast } from '@/hooks/use-toast';
+import { doc } from 'firebase/firestore';
+import { format } from 'date-fns';
 
 // Mock transactions to simulate fetching user data
 const mockTransactions = [
@@ -26,12 +30,17 @@ export function RecommendationTool() {
   const [isLoading, setIsLoading] = useState(false);
   const [recommendations, setRecommendations] = useState<IntelligentBudgetRecommendationsOutput | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const { format } = useCurrency();
+  const [appliedBudgets, setAppliedBudgets] = useState<string[]>([]);
+  const { format: formatCurrency } = useCurrency();
+  const { user } = useUser();
+  const firestore = useFirestore();
+  const { toast } = useToast();
 
   const handleGetRecommendations = async () => {
     setIsLoading(true);
     setError(null);
     setRecommendations(null);
+    setAppliedBudgets([]);
 
     const input: IntelligentBudgetRecommendationsInput = {
       monthlyIncome: parseFloat(monthlyIncome),
@@ -48,6 +57,35 @@ export function RecommendationTool() {
       setIsLoading(false);
     }
   };
+
+  const handleApplyBudget = (category: string, amount: number) => {
+    if (!user || !firestore) {
+        toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in to apply a budget.' });
+        return;
+    }
+
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1;
+    const budgetId = `${year}-${month}-${category}`;
+    const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budgetId);
+
+    const budgetData = {
+        userId: user.uid,
+        category,
+        amount,
+        month,
+        year,
+    };
+
+    setDocumentNonBlocking(budgetRef, budgetData);
+
+    toast({
+        title: 'Budget Applied!',
+        description: `Your new budget of ${formatCurrency(amount)} for ${category} has been saved.`,
+    });
+    setAppliedBudgets(prev => [...prev, category]);
+  }
 
   return (
     <div className="grid gap-6 lg:grid-cols-3">
@@ -101,20 +139,35 @@ export function RecommendationTool() {
             )}
             {recommendations && (
                 <div className="space-y-4">
-                    <h2 className="text-xl font-bold">Your AI-Powered Budget Plan</h2>
+                    <h2 className="text-xl font-bold">Your AI-Powered Budget Plan for {format(new Date(), 'MMMM yyyy')}</h2>
                     <div className="grid gap-4 md:grid-cols-2">
-                        {recommendations.recommendations.map((rec, index) => (
-                            <Card key={index} className="flex flex-col">
-                                <CardHeader>
-                                    <CardTitle className="text-lg">{rec.category}</CardTitle>
-                                    <CardDescription>Recommended Budget</CardDescription>
-                                </CardHeader>
-                                <CardContent className="flex-grow space-y-4">
-                                    <p className="text-3xl font-bold text-primary">{format(rec.recommendedBudget)}</p>
-                                    <p className="text-sm text-muted-foreground">{rec.reason}</p>
-                                </CardContent>
-                            </Card>
-                        ))}
+                        {recommendations.recommendations.map((rec, index) => {
+                            const isApplied = appliedBudgets.includes(rec.category);
+                            return (
+                                <Card key={index} className="flex flex-col">
+                                    <CardHeader>
+                                        <CardTitle className="text-lg">{rec.category}</CardTitle>
+                                        <CardDescription>Recommended Budget</CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="flex-grow space-y-4">
+                                        <p className="text-3xl font-bold text-primary">{formatCurrency(rec.recommendedBudget)}</p>
+                                        <p className="text-sm text-muted-foreground">{rec.reason}</p>
+                                    </CardContent>
+                                    <CardFooter>
+                                        <Button 
+                                            onClick={() => handleApplyBudget(rec.category, rec.recommendedBudget)}
+                                            disabled={isApplied}
+                                            className="w-full"
+                                        >
+                                            {isApplied ? (
+                                                <CheckCircle className="mr-2 h-4 w-4" />
+                                            ) : null}
+                                            {isApplied ? 'Applied' : 'Apply Budget'}
+                                        </Button>
+                                    </CardFooter>
+                                </Card>
+                            )
+                        })}
                     </div>
                 </div>
             )}

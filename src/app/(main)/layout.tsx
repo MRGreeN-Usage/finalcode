@@ -8,6 +8,7 @@ import { Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { FirebaseClientProvider } from '@/firebase';
+import { ParticlesBackground } from '@/components/shared/particles-background';
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
@@ -16,8 +17,9 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     <FirebaseClientProvider>
       <AuthGate>
         <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
-          <Sidebar className="hidden md:block" />
-          <div className="flex flex-col">
+          <ParticlesBackground />
+          <Sidebar className="hidden md:block z-10" />
+          <div className="flex flex-col z-10">
             <header className="flex h-14 items-center gap-4 border-b bg-background/95 px-4 lg:h-[60px] lg:px-6 sticky top-0 z-30 backdrop-blur-sm">
               <Sheet open={open} onOpenChange={setOpen}>
                 <SheetTrigger asChild>

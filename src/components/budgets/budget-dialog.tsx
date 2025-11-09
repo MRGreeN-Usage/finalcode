@@ -22,7 +22,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import type { Budget, TransactionCategory } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
-import { useUser, useFirestore, addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
+import { useUser, useFirestore, setDocumentNonBlocking } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 
 const categories: TransactionCategory[] = ['Food', 'Transport', 'Shopping', 'Housing', 'Health', 'Entertainment', 'Other'];
@@ -49,15 +49,20 @@ export function BudgetDialog({ isOpen, setIsOpen, budget, month, year, existingC
       setCategory(budget.category as TransactionCategory);
       setAmount(String(budget.amount));
     } else {
-      setCategory('Food');
+      // Find the first available category
+      const firstAvailable = categories.find(c => !existingCategories.includes(c));
+      setCategory(firstAvailable || 'Food');
       setAmount('');
     }
-  }, [budget, isOpen]);
+  }, [budget, isOpen, existingCategories]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !firestore) return;
     setIsLoading(true);
+
+    const budgetId = budget?.id || `${year}-${month}-${category}`;
+    const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budgetId);
 
     const budgetData = {
       userId: user.uid,
@@ -68,13 +73,7 @@ export function BudgetDialog({ isOpen, setIsOpen, budget, month, year, existingC
     };
     
     try {
-      if (budget) {
-        // Update existing budget
-        const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budget.id);
-        updateDocumentNonBlocking(budgetRef, budgetData);
-      } else {
-        // Add new budget
-        if(existingCategories.includes(category)) {
+      if (!budget && existingCategories.includes(category)) {
           toast({
             variant: 'destructive',
             title: 'Duplicate Budget',
@@ -82,10 +81,9 @@ export function BudgetDialog({ isOpen, setIsOpen, budget, month, year, existingC
           });
           setIsLoading(false);
           return;
-        }
-        const budgetsRef = collection(firestore, 'users', user.uid, 'budgets');
-        addDocumentNonBlocking(budgetsRef, budgetData);
       }
+      
+      setDocumentNonBlocking(budgetRef, budgetData);
       
       toast({
         title: `Budget ${budget ? 'Updated' : 'Created'}`,
