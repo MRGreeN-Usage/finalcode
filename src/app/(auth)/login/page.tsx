@@ -47,12 +47,11 @@ function LoginPageContent() {
     }
   }, [user, isUserLoading, router]);
 
-  const createUserProfile = async (user: User) => {
+  const handleAuthSuccess = async (user: User) => {
     if (!firestore) return;
     const userDocRef = doc(firestore, 'users', user.uid);
     const docSnap = await getDoc(userDocRef);
     if (!docSnap.exists()) {
-      // Use await to ensure profile is created before proceeding
       await setDoc(userDocRef, {
         id: user.uid,
         email: user.email,
@@ -60,10 +59,6 @@ function LoginPageContent() {
         createdAt: serverTimestamp(),
       });
     }
-  };
-
-  const handleAuthSuccess = async (user: User) => {
-    await createUserProfile(user);
     router.push('/dashboard');
   };
 
