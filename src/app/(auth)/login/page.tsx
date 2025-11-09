@@ -14,9 +14,11 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   createUserWithEmailAndPassword,
-  type UserCredential,
+  type User,
 } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
+import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
+import { useFirestore } from '@/firebase';
 
 const GoogleIcon = () => (
   <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2">
@@ -35,6 +37,7 @@ function LoginPageContent() {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const router = useRouter();
   const auth = useAuth();
+  const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
   const { toast } = useToast();
 
@@ -44,7 +47,22 @@ function LoginPageContent() {
     }
   }, [user, isUserLoading, router]);
 
-  const handleAuthSuccess = () => {
+  const createUserProfile = async (user: User) => {
+    if (!firestore) return;
+    const userDocRef = doc(firestore, 'users', user.uid);
+    const docSnap = await getDoc(userDocRef);
+    if (!docSnap.exists()) {
+      await setDoc(userDocRef, {
+        id: user.uid,
+        email: user.email,
+        name: user.displayName || user.email?.split('@')[0] || 'New User',
+        createdAt: serverTimestamp(),
+      });
+    }
+  };
+
+  const handleAuthSuccess = async (user: User) => {
+    await createUserProfile(user);
     router.push('/dashboard');
   };
 
@@ -54,13 +72,13 @@ function LoginPageContent() {
     setIsLoading(true);
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      handleAuthSuccess();
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      await handleAuthSuccess(userCredential.user);
     } catch (error: any) {
       if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
         try {
-          await createUserWithEmailAndPassword(auth, email, password);
-          handleAuthSuccess();
+          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+          await handleAuthSuccess(userCredential.user);
         } catch (signupError: any) {
           toast({
             variant: 'destructive',
@@ -85,8 +103,8 @@ function LoginPageContent() {
     setIsGoogleLoading(true);
     const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
-      handleAuthSuccess();
+      const result = await signInWithPopup(auth, provider);
+      await handleAuthSuccess(result.user);
     } catch (error: any) {
       toast({
         variant: 'destructive',

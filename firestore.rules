@@ -4,7 +4,6 @@
  * Core Philosophy:
  * This ruleset enforces a strict user-ownership model. Each user has exclusive access to their
  * profile data, transactions, categories, budgets, and monthly summaries. No cross-user access is permitted.
- * A user document MUST exist in the /users collection for any data access to be granted.
  *
  * Data Structure:
  * All data is nested under `/users/{userId}`, ensuring clear ownership and simplified security rules.
@@ -17,10 +16,7 @@
  * Key Security Decisions:
  * - No listing of all users is allowed.
  * - All write operations require authentication.
- * - Data consistency between the path and document data is enforced on both creation and update, protecting against unauthorized data manipulation.
- *
- * Denormalization for Authorization:
- * The 'userId' is denormalized into each transaction, category, budget, and monthlySummary document to allow direct authorization checks without additional reads.
+ * - Ownership is strictly enforced by matching the `userId` in the path to the requester's `auth.uid`.
  */
 rules_version = '2';
 service cloud.firestore {
