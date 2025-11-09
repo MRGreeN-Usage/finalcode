@@ -10,10 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { updateProfile, sendPasswordResetEmail, signOut } from 'firebase/auth';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, collection, getDocs, writeBatch, deleteDoc } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
 import type { Currency, Theme } from '@/lib/types';
-import { deleteUserData } from '@/ai/flows/delete-user-data';
 import { useRouter } from 'next/navigation';
 
 
@@ -104,34 +103,51 @@ export default function SettingsPage() {
     };
 
     const handleClearData = async () => {
-      if (!user) {
-          toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in to perform this action.' });
-          return;
-      }
-      setIsDeleting(true);
-      try {
-          await deleteUserData({ userId: user.uid });
-          toast({
-              title: 'Data Deletion Initiated',
-              description: 'Your data has been successfully cleared. You will now be logged out.',
-          });
+        if (!user || !firestore) {
+            toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in to perform this action.' });
+            return;
+        }
+        setIsDeleting(true);
+        
+        try {
+            const collectionsToDelete = ['transactions', 'budgets', 'categories', 'monthlySummaries'];
+            
+            for (const collectionName of collectionsToDelete) {
+                const collectionRef = collection(firestore, 'users', user.uid, collectionName);
+                const snapshot = await getDocs(collectionRef);
+                const batch = writeBatch(firestore);
+                snapshot.forEach(doc => {
+                    batch.delete(doc.ref);
+                });
+                await batch.commit();
+            }
 
-          // Wait a moment for the toast to be seen, then log out.
-          setTimeout(async () => {
-              if(auth) {
-                await signOut(auth);
-                router.push('/login');
-              }
-          }, 3000);
+            // Finally, delete the user's main document.
+            const userDocRef = doc(firestore, 'users', user.uid);
+            await deleteDoc(userDocRef);
 
-      } catch (error: any) {
-          toast({
-              variant: 'destructive',
-              title: 'Deletion Failed',
-              description: error.message || 'There was an error deleting your data. Please try again.',
-          });
-          setIsDeleting(false);
-      }
+            toast({
+                title: 'Data Deletion Complete',
+                description: 'Your data has been successfully cleared. You will now be logged out.',
+            });
+
+            // Wait a moment for the toast to be seen, then log out.
+            setTimeout(async () => {
+                if(auth) {
+                    await signOut(auth);
+                    router.push('/login');
+                }
+            }, 3000);
+
+        } catch (error: any) {
+            console.error("Data deletion failed:", error);
+            toast({
+                variant: 'destructive',
+                title: 'Deletion Failed',
+                description: error.message || 'There was an error deleting your data. Please try again.',
+            });
+            setIsDeleting(false);
+        }
     }
     
     return (
