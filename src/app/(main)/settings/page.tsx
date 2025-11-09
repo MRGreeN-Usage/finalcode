@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { useUser, useAuth } from '@/firebase';
+import { useUser, useAuth, useFirestore } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -9,20 +9,31 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { updateProfile } from 'firebase/auth';
+import { doc, updateDoc } from 'firebase/firestore';
+import { Loader2 } from 'lucide-react';
 
 export default function SettingsPage() {
     const { user } = useUser();
     const auth = useAuth();
+    const firestore = useFirestore();
     const { toast } = useToast();
 
     const [name, setName] = useState(user?.displayName || '');
+    const [isSavingProfile, setIsSavingProfile] = useState(false);
     const [currency, setCurrency] = useState('USD');
     const [theme, setTheme] = useState('auto');
 
     const handleSaveProfile = async () => {
-        if (!user) return;
+        if (!user || !auth.currentUser || !firestore) return;
+        setIsSavingProfile(true);
         try {
-            await updateProfile(user, { displayName: name });
+            // Update Firebase Auth profile
+            await updateProfile(auth.currentUser, { displayName: name });
+            
+            // Update Firestore user document
+            const userDocRef = doc(firestore, 'users', user.uid);
+            await updateDoc(userDocRef, { name: name });
+
             toast({
                 title: 'Profile Updated',
                 description: 'Your name has been successfully updated.',
@@ -33,6 +44,8 @@ export default function SettingsPage() {
                 title: 'Error',
                 description: error.message,
             });
+        } finally {
+            setIsSavingProfile(false);
         }
     };
     
@@ -63,13 +76,16 @@ export default function SettingsPage() {
                 <CardContent className="space-y-4 max-w-md">
                     <div className="space-y-2">
                         <Label htmlFor="name">Full Name</Label>
-                        <Input id="name" value={name} onChange={(e) => setName(e.target.value)} />
+                        <Input id="name" value={name} onChange={(e) => setName(e.target.value)} disabled={isSavingProfile}/>
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="email">Email</Label>
                         <Input id="email" value={user?.email || ''} disabled />
                     </div>
-                    <Button onClick={handleSaveProfile}>Save Profile</Button>
+                    <Button onClick={handleSaveProfile} disabled={isSavingProfile}>
+                        {isSavingProfile && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Save Profile
+                    </Button>
                 </CardContent>
             </Card>
 
