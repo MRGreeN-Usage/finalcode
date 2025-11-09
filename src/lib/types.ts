@@ -29,3 +29,19 @@ export type BarChartData = {
   name: string;
   total: number;
 };
+
+export type Currency = 'USD' | 'EUR' | 'GBP' | 'JPY' | 'INR';
+export type Theme = 'light' | 'dark' | 'auto';
+
+export interface UserPreferences {
+    currency: Currency;
+    theme: Theme;
+}
+
+export interface UserProfile {
+    id: string;
+    email: string;
+    name: string;
+    createdAt: any; // serverTimestamp
+    preferences?: UserPreferences;
+}

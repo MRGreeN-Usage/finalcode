@@ -13,6 +13,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useCurrency } from '@/hooks/use-currency';
 
 interface BudgetListProps {
   budgets: Budget[];
@@ -23,6 +24,8 @@ interface BudgetListProps {
 }
 
 export function BudgetList({ budgets, transactions, onEdit, onDelete, isLoading }: BudgetListProps) {
+  const { format } = useCurrency();
+
   const spendingByCategory = useMemo(() => {
     return transactions.reduce((acc, tx) => {
       if (acc[tx.category]) {
@@ -83,7 +86,7 @@ export function BudgetList({ budgets, transactions, onEdit, onDelete, isLoading 
               <div>
                 <CardTitle className="text-lg font-semibold">{budget.category}</CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  Budget: ${budget.amount.toLocaleString()}
+                  Budget: {format(budget.amount)}
                 </p>
               </div>
               <DropdownMenu>
@@ -106,17 +109,17 @@ export function BudgetList({ budgets, transactions, onEdit, onDelete, isLoading 
               <Progress value={progress > 100 ? 100 : progress} className={progress > 100 ? '[&>div]:bg-destructive' : ''} />
               <div className="flex justify-between text-sm">
                 <p className="text-muted-foreground">Spent</p>
-                <p>${spent.toLocaleString()}</p>
+                <p>{format(spent)}</p>
               </div>
             </CardContent>
             <CardFooter>
                 {remaining >= 0 ? (
                     <p className="text-sm text-primary">
-                        ${remaining.toLocaleString()} remaining
+                        {format(remaining)} remaining
                     </p>
                 ) : (
                     <p className="text-sm text-destructive">
-                        ${Math.abs(remaining).toLocaleString()} over budget
+                        {format(Math.abs(remaining))} over budget
                     </p>
                 )}
             </CardFooter>

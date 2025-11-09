@@ -5,6 +5,7 @@ import { ArrowUpRight, Utensils, Car, ShoppingBag, HeartPulse, Building, Gamepad
 import Link from 'next/link';
 import type { Transaction, TransactionCategory } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useCurrency } from '@/hooks/use-currency';
 
 const categoryIcons: Record<TransactionCategory, React.ElementType> = {
     'Food': Utensils,
@@ -18,6 +19,7 @@ const categoryIcons: Record<TransactionCategory, React.ElementType> = {
 };
 
 export function RecentTransactions({ transactions, isLoading }: { transactions: Transaction[], isLoading: boolean }) {
+  const { format } = useCurrency();
   return (
     <Card>
       <CardHeader className="flex flex-row items-center">
@@ -60,7 +62,7 @@ export function RecentTransactions({ transactions, isLoading }: { transactions: 
                 <p className="text-sm text-muted-foreground">{tx.category}</p>
               </div>
               <div className={`font-medium ${tx.type === 'income' ? 'text-primary' : ''}`}>
-                {tx.type === 'income' ? '+' : '-'}${tx.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                {tx.type === 'income' ? '+' : '-'}{format(tx.amount)}
               </div>
             </div>
           )

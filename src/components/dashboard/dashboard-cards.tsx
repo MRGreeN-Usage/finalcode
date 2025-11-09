@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DollarSign, Landmark, PiggyBank } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useCurrency } from '@/hooks/use-currency';
 
 interface DashboardCardsProps {
   month: string;
@@ -11,6 +12,7 @@ interface DashboardCardsProps {
 }
 
 export function DashboardCards({ month, income, expenses, balance, isLoading }: DashboardCardsProps) {
+  const { format } = useCurrency();
   
   if (isLoading) {
     return (
@@ -57,7 +59,7 @@ export function DashboardCards({ month, income, expenses, balance, isLoading }: 
           <Landmark className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">${income.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
+          <div className="text-2xl font-bold">{format(income)}</div>
           <p className="text-xs text-muted-foreground">for {month}</p>
         </CardContent>
       </Card>
@@ -67,7 +69,7 @@ export function DashboardCards({ month, income, expenses, balance, isLoading }: 
           <DollarSign className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-destructive">${expenses.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
+          <div className="text-2xl font-bold text-destructive">{format(expenses)}</div>
           <p className="text-xs text-muted-foreground">for {month}</p>
         </CardContent>
       </Card>
@@ -78,7 +80,7 @@ export function DashboardCards({ month, income, expenses, balance, isLoading }: 
         </CardHeader>
         <CardContent>
           <div className={`text-2xl font-bold ${balance >= 0 ? 'text-primary' : 'text-destructive'}`}>
-            ${balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+            {format(balance)}
           </div>
           <p className="text-xs text-muted-foreground">Remaining for {month}</p>
         </CardContent>

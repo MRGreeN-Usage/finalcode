@@ -6,6 +6,7 @@ import { ChartContainer, ChartTooltipContent, type ChartConfig } from '@/compone
 import type { Transaction } from '@/lib/types';
 import { useMemo } from 'react';
 import { eachWeekOfInterval, startOfMonth, endOfMonth, format, getDay, eachMonthOfInterval, startOfYear, endOfYear } from 'date-fns';
+import { useCurrency } from '@/hooks/use-currency';
 
 const chartConfig = {
   income: {
@@ -19,6 +20,7 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 export function IncomeExpenseChart({ transactions, title }: { transactions: Transaction[], title?: string }) {
+  const { formatShort } = useCurrency();
   const chartData = useMemo(() => {
     if (!transactions || transactions.length === 0) return [];
     
@@ -56,7 +58,7 @@ export function IncomeExpenseChart({ transactions, title }: { transactions: Tran
             <LineChart data={chartData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
               <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} />
-              <YAxis tickLine={false} axisLine={false} tickMargin={8} tickFormatter={(value) => `$${value/1000}k`}/>
+              <YAxis tickLine={false} axisLine={false} tickMargin={8} tickFormatter={(value) => formatShort(value)}/>
               <Tooltip
                 cursor={{ fill: 'hsl(var(--muted))' }}
                 content={<ChartTooltipContent indicator="dot" />}

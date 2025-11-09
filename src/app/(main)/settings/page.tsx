@@ -1,6 +1,6 @@
 'use client';
-import { useState } from 'react';
-import { useUser, useAuth, useFirestore } from '@/firebase';
+import { useState, useEffect } from 'react';
+import { useUser, useAuth, useFirestore, usePreferences } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -11,26 +11,40 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { updateProfile } from 'firebase/auth';
 import { doc, updateDoc } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
+import type { Currency, Theme } from '@/lib/types';
 
 export default function SettingsPage() {
     const { user } = useUser();
     const auth = useAuth();
     const firestore = useFirestore();
     const { toast } = useToast();
+    const { preferences, updatePreferences } = usePreferences();
 
     const [name, setName] = useState(user?.displayName || '');
     const [isSavingProfile, setIsSavingProfile] = useState(false);
-    const [currency, setCurrency] = useState('USD');
-    const [theme, setTheme] = useState('auto');
+
+    const [currency, setCurrency] = useState<Currency>(preferences?.currency || 'USD');
+    const [theme, setTheme] = useState<Theme>(preferences?.theme || 'auto');
+    const [isSavingPrefs, setIsSavingPrefs] = useState(false);
+
+    useEffect(() => {
+        if (user?.displayName) {
+            setName(user.displayName);
+        }
+    }, [user?.displayName]);
+    
+    useEffect(() => {
+        if (preferences) {
+            setCurrency(preferences.currency);
+            setTheme(preferences.theme);
+        }
+    }, [preferences]);
 
     const handleSaveProfile = async () => {
         if (!user || !auth.currentUser || !firestore) return;
         setIsSavingProfile(true);
         try {
-            // Update Firebase Auth profile
             await updateProfile(auth.currentUser, { displayName: name });
-            
-            // Update Firestore user document
             const userDocRef = doc(firestore, 'users', user.uid);
             await updateDoc(userDocRef, { name: name });
 
@@ -49,15 +63,13 @@ export default function SettingsPage() {
         }
     };
     
-    const handleSavePreferences = () => {
-        toast({
-            title: 'Preferences Saved',
-            description: 'Your preferences have been updated.',
-        });
+    const handleSavePreferences = async () => {
+        setIsSavingPrefs(true);
+        await updatePreferences({ currency, theme });
+        setIsSavingPrefs(false);
     }
 
     const handleClearData = () => {
-        // In a real app this would trigger a cloud function to delete user subcollections
         console.log("Clearing all user data...");
         toast({
             title: 'Data Cleared',
@@ -96,7 +108,7 @@ export default function SettingsPage() {
                 <CardContent className="space-y-4 max-w-md">
                      <div className="space-y-2">
                         <Label htmlFor="currency">Currency</Label>
-                        <Select value={currency} onValueChange={setCurrency}>
+                        <Select value={currency} onValueChange={(v) => setCurrency(v as Currency)}>
                             <SelectTrigger id="currency">
                                 <SelectValue placeholder="Select currency" />
                             </SelectTrigger>
@@ -105,12 +117,13 @@ export default function SettingsPage() {
                                 <SelectItem value="EUR">Euro (EUR)</SelectItem>
                                 <SelectItem value="GBP">British Pound (GBP)</SelectItem>
                                 <SelectItem value="JPY">Japanese Yen (JPY)</SelectItem>
+                                <SelectItem value="INR">Indian Rupee (INR)</SelectItem>
                             </SelectContent>
                         </Select>
                      </div>
                      <div className="space-y-2">
                         <Label htmlFor="theme">Theme</Label>
-                        <Select value={theme} onValueChange={setTheme}>
+                        <Select value={theme} onValueChange={(v) => setTheme(v as Theme)}>
                             <SelectTrigger id="theme">
                                 <SelectValue placeholder="Select theme" />
                             </SelectTrigger>
@@ -121,7 +134,10 @@ export default function SettingsPage() {
                             </SelectContent>
                         </Select>
                      </div>
-                     <Button onClick={handleSavePreferences}>Save Preferences</Button>
+                     <Button onClick={handleSavePreferences} disabled={isSavingPrefs}>
+                        {isSavingPrefs && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Save Preferences
+                     </Button>
                 </CardContent>
             </Card>
 

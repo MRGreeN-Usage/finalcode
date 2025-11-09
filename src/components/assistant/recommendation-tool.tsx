@@ -9,6 +9,7 @@ import { Loader2, Sparkles, Wand2 } from 'lucide-react';
 import type { IntelligentBudgetRecommendationsInput, IntelligentBudgetRecommendationsOutput } from '@/ai/flows/intelligent-budget-recommendations';
 import { intelligentBudgetRecommendations } from '@/ai/flows/intelligent-budget-recommendations';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { useCurrency } from '@/hooks/use-currency';
 
 // Mock transactions to simulate fetching user data
 const mockTransactions = [
@@ -25,6 +26,7 @@ export function RecommendationTool() {
   const [isLoading, setIsLoading] = useState(false);
   const [recommendations, setRecommendations] = useState<IntelligentBudgetRecommendationsOutput | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { format } = useCurrency();
 
   const handleGetRecommendations = async () => {
     setIsLoading(true);
@@ -108,7 +110,7 @@ export function RecommendationTool() {
                                     <CardDescription>Recommended Budget</CardDescription>
                                 </CardHeader>
                                 <CardContent className="flex-grow space-y-4">
-                                    <p className="text-3xl font-bold text-primary">${rec.recommendedBudget.toLocaleString()}</p>
+                                    <p className="text-3xl font-bold text-primary">{format(rec.recommendedBudget)}</p>
                                     <p className="text-sm text-muted-foreground">{rec.reason}</p>
                                 </CardContent>
                             </Card>

@@ -9,10 +9,12 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowDown, ArrowUp, Minus } from 'lucide-react';
+import { useCurrency } from '@/hooks/use-currency';
 
 export default function AnalyticsPage() {
   const { user } = useUser();
   const firestore = useFirestore();
+  const { format: formatCurrency, formatShort } = useCurrency();
 
   const transactionsQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
@@ -112,7 +114,7 @@ export default function AnalyticsPage() {
                         <LineChart data={thirtyDayTrendData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} />
                             <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} fontSize={12} />
-                            <YAxis tickLine={false} axisLine={false} tickMargin={8} tickFormatter={(v) => `$${v}`} fontSize={12} />
+                            <YAxis tickLine={false} axisLine={false} tickMargin={8} tickFormatter={(v) => formatShort(v)} fontSize={12} />
                             <Tooltip content={<ChartTooltipContent indicator="dot" />} />
                             <Line dataKey="expenses" type="monotone" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
                         </LineChart>
@@ -131,11 +133,11 @@ export default function AnalyticsPage() {
                 <div className="flex flex-col justify-center h-full gap-4">
                     <div>
                         <p className="text-sm text-muted-foreground">This Month ({format(new Date(), 'MMMM')})</p>
-                        <p className="text-2xl font-bold">${monthlyComparison.currentMonth.toLocaleString()}</p>
+                        <p className="text-2xl font-bold">{formatCurrency(monthlyComparison.currentMonth)}</p>
                     </div>
                     <div>
                         <p className="text-sm text-muted-foreground">Last Month ({format(subMonths(new Date(), 1), 'MMMM')})</p>
-                        <p className="text-2xl font-bold">${monthlyComparison.lastMonth.toLocaleString()}</p>
+                        <p className="text-2xl font-bold">{formatCurrency(monthlyComparison.lastMonth)}</p>
                     </div>
                      <div className="flex items-center gap-2">
                         {monthlyComparison.changeType === 'increase' && <ArrowUp className="h-5 w-5 text-destructive" />}
@@ -163,7 +165,7 @@ export default function AnalyticsPage() {
                  <ChartContainer config={{}} className="w-full h-full">
                     <BarChart data={categorySpendingData} layout="vertical" margin={{ left: 10, right: 30 }}>
                         <CartesianGrid horizontal={false} />
-                        <XAxis type="number" tickFormatter={(v) => `$${v}`} />
+                        <XAxis type="number" tickFormatter={(v) => formatShort(v)} />
                         <YAxis type="category" dataKey="name" width={80} tickLine={false} axisLine={false}/>
                         <Tooltip content={<ChartTooltipContent />} cursor={{fill: 'hsl(var(--muted))'}}/>
                         <Bar dataKey="total" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />

@@ -19,9 +19,10 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import type { Transaction } from '@/lib/types';
-import { format } from 'date-fns';
+import { format as formatDate } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '../ui/skeleton';
+import { useCurrency } from '@/hooks/use-currency';
 
 interface TransactionTableProps {
   transactions: Transaction[];
@@ -31,6 +32,7 @@ interface TransactionTableProps {
 }
 
 export function TransactionTable({ transactions, onEdit, onDelete, isLoading }: TransactionTableProps) {
+  const { format } = useCurrency();
   return (
     <div className="rounded-lg border">
       <Table>
@@ -57,7 +59,7 @@ export function TransactionTable({ transactions, onEdit, onDelete, isLoading }: 
           ) : transactions.length > 0 ? (
             transactions.map((transaction) => (
               <TableRow key={transaction.id}>
-                <TableCell>{format(new Date(transaction.date), 'MMM d, yyyy')}</TableCell>
+                <TableCell>{formatDate(new Date(transaction.date), 'MMM d, yyyy')}</TableCell>
                 <TableCell className="font-medium">{transaction.description}</TableCell>
                 <TableCell>
                   <Badge variant="outline">{transaction.category}</Badge>
@@ -68,8 +70,7 @@ export function TransactionTable({ transactions, onEdit, onDelete, isLoading }: 
                     transaction.type === 'income' ? 'text-primary' : 'text-foreground'
                   )}
                 >
-                  {transaction.type === 'income' ? '+' : '-'}$
-                  {transaction.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  {transaction.type === 'income' ? '+' : '-'}{format(transaction.amount)}
                 </TableCell>
                 <TableCell>
                   <DropdownMenu>
