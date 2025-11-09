@@ -10,20 +10,12 @@ import type { IntelligentBudgetRecommendationsInput, IntelligentBudgetRecommenda
 import { intelligentBudgetRecommendations } from '@/ai/flows/intelligent-budget-recommendations';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { useCurrency } from '@/hooks/use-currency';
-import { useUser, useFirestore, setDocumentNonBlocking } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { doc } from 'firebase/firestore';
+import { collection, doc, query, orderBy, limit } from 'firebase/firestore';
 import { format } from 'date-fns';
-
-// Mock transactions to simulate fetching user data
-const mockTransactions = [
-    { category: "Food", amount: 650 },
-    { category: "Transport", amount: 250 },
-    { category: "Shopping", amount: 800 },
-    { category: "Entertainment", amount: 300 },
-    { category: "Housing", amount: 1200 },
-    { category: "Health", amount: 150 },
-];
+import type { Transaction } from '@/lib/types';
+import { Skeleton } from '../ui/skeleton';
 
 export function RecommendationTool() {
   const [monthlyIncome, setMonthlyIncome] = useState('5000');
@@ -36,15 +28,37 @@ export function RecommendationTool() {
   const firestore = useFirestore();
   const { toast } = useToast();
 
+  const transactionsQuery = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return query(
+      collection(firestore, 'users', user.uid, 'transactions'),
+      orderBy('date', 'desc'),
+      limit(100) // Fetch last 100 transactions for analysis
+    );
+  }, [user, firestore]);
+
+  const { data: transactions, isLoading: transactionsLoading } = useCollection<Transaction>(transactionsQuery);
+
   const handleGetRecommendations = async () => {
+    if (!transactions || transactions.length === 0) {
+        setError('No transaction data available to analyze. Please add some transactions first.');
+        return;
+    }
+
     setIsLoading(true);
     setError(null);
     setRecommendations(null);
     setAppliedBudgets([]);
 
+    // Map Firestore transactions to the format expected by the AI flow
+    const flowTransactions = transactions.map(t => ({
+      category: t.category,
+      amount: t.amount,
+    }));
+
     const input: IntelligentBudgetRecommendationsInput = {
       monthlyIncome: parseFloat(monthlyIncome),
-      transactions: mockTransactions, // In a real app, fetch this from Firestore
+      transactions: flowTransactions,
     };
 
     try {
@@ -82,7 +96,7 @@ export function RecommendationTool() {
 
     toast({
         title: 'Budget Applied!',
-        description: `Your new budget of ${formatCurrency(amount)} for ${category} has been saved.`,
+        description: `Your new budget of ${formatCurrency(amount)} for ${category} has been saved for ${format(now, 'MMMM')}.`,
     });
     setAppliedBudgets(prev => [...prev, category]);
   }
@@ -93,7 +107,7 @@ export function RecommendationTool() {
             <CardHeader>
             <CardTitle>Analyze Your Spending</CardTitle>
             <CardDescription>
-                Enter your monthly income to get started. Our AI will analyze your recent spending and suggest a smarter budget.
+                Enter your monthly income. Our AI will analyze your latest transactions to suggest a smarter budget.
             </CardDescription>
             </CardHeader>
             <CardContent>
@@ -106,19 +120,19 @@ export function RecommendationTool() {
                     placeholder="e.g., 5000"
                     value={monthlyIncome}
                     onChange={(e) => setMonthlyIncome(e.target.value)}
-                    disabled={isLoading}
+                    disabled={isLoading || transactionsLoading}
                 />
                 </div>
             </div>
             </CardContent>
             <CardFooter>
-            <Button onClick={handleGetRecommendations} disabled={isLoading || !monthlyIncome} className="w-full">
-                {isLoading ? (
+            <Button onClick={handleGetRecommendations} disabled={isLoading || transactionsLoading || !monthlyIncome || !transactions || transactions.length === 0} className="w-full">
+                {isLoading || transactionsLoading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
                 <Wand2 className="mr-2 h-4 w-4" />
                 )}
-                Generate Recommendations
+                {transactionsLoading ? 'Loading Data...' : 'Generate Recommendations'}
             </Button>
             </CardFooter>
         </Card>
@@ -174,9 +188,18 @@ export function RecommendationTool() {
 
             {!isLoading && !recommendations && !error && (
                  <div className="flex flex-col items-center justify-center h-full rounded-lg border border-dashed p-8 text-center">
-                    <Sparkles className="h-12 w-12 text-muted-foreground" />
-                    <p className="mt-4 text-lg font-semibold">Ready for Financial Clarity?</p>
-                    <p className="text-muted-foreground">Enter your income and let our AI assistant guide you toward your financial goals.</p>
+                    {transactionsLoading ? (
+                      <>
+                        <Loader2 className="h-12 w-12 text-muted-foreground animate-spin" />
+                        <p className="mt-4 text-lg font-semibold">Loading transaction data...</p>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-12 w-12 text-muted-foreground" />
+                        <p className="mt-4 text-lg font-semibold">Ready for Financial Clarity?</p>
+                        <p className="text-muted-foreground">Enter your income and let our AI assistant guide you toward your financial goals.</p>
+                      </>
+                    )}
                 </div>
             )}
         </div>
