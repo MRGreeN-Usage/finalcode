@@ -52,6 +52,7 @@ function LoginPageContent() {
     const userDocRef = doc(firestore, 'users', user.uid);
     const docSnap = await getDoc(userDocRef);
     if (!docSnap.exists()) {
+      // Use await to ensure profile is created before proceeding
       await setDoc(userDocRef, {
         id: user.uid,
         email: user.email,
