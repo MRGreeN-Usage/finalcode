@@ -14,11 +14,8 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   createUserWithEmailAndPassword,
-  UserCredential,
 } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
-import { doc, setDoc } from 'firebase/firestore';
-import { useFirestore } from '@/firebase';
 
 const GoogleIcon = () => (
   <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2">
@@ -37,7 +34,6 @@ function LoginPageContent() {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const router = useRouter();
   const auth = useAuth();
-  const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
   const { toast } = useToast();
 
@@ -47,35 +43,19 @@ function LoginPageContent() {
     }
   }, [user, isUserLoading, router]);
 
-  const createUserProfile = async (user: UserCredential['user']) => {
-    if (!firestore) return;
-    const userDocRef = doc(firestore, 'users', user.uid);
-    await setDoc(userDocRef, {
-      id: user.uid,
-      email: user.email,
-      name: user.displayName || user.email?.split('@')[0],
-      createdAt: new Date().toISOString(),
-    });
-  };
-
-  const handleAuthSuccess = async (userCredential: UserCredential) => {
-    await createUserProfile(userCredential.user);
-    router.push('/dashboard');
-  };
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!auth) return;
     setIsLoading(true);
 
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      await handleAuthSuccess(userCredential);
+      await signInWithEmailAndPassword(auth, email, password);
+      // AuthGate will handle profile creation and redirect
     } catch (error: any) {
       if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
         try {
-          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-          await handleAuthSuccess(userCredential);
+          await createUserWithEmailAndPassword(auth, email, password);
+          // AuthGate will handle profile creation and redirect
         } catch (signupError: any) {
           console.error('Signup failed:', signupError);
           toast({
@@ -102,8 +82,8 @@ function LoginPageContent() {
     setIsGoogleLoading(true);
     const provider = new GoogleAuthProvider();
     try {
-      const userCredential = await signInWithPopup(auth, provider);
-      await handleAuthSuccess(userCredential);
+      await signInWithPopup(auth, provider);
+      // AuthGate will handle profile creation and redirect
     } catch (error: any) {
       console.error('Google sign-in failed:', error);
       toast({
