@@ -44,7 +44,7 @@ function LoginPageContent() {
     }
   }, [user, isUserLoading, router]);
 
-  const handleAuthSuccess = (userCredential: UserCredential) => {
+  const handleAuthSuccess = () => {
     router.push('/dashboard');
   };
 
@@ -54,13 +54,13 @@ function LoginPageContent() {
     setIsLoading(true);
 
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      handleAuthSuccess(userCredential);
+      await signInWithEmailAndPassword(auth, email, password);
+      handleAuthSuccess();
     } catch (error: any) {
       if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
         try {
-          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-          handleAuthSuccess(userCredential);
+          await createUserWithEmailAndPassword(auth, email, password);
+          handleAuthSuccess();
         } catch (signupError: any) {
           toast({
             variant: 'destructive',
@@ -85,8 +85,8 @@ function LoginPageContent() {
     setIsGoogleLoading(true);
     const provider = new GoogleAuthProvider();
     try {
-      const userCredential = await signInWithPopup(auth, provider);
-      handleAuthSuccess(userCredential);
+      await signInWithPopup(auth, provider);
+      handleAuthSuccess();
     } catch (error: any) {
       toast({
         variant: 'destructive',
