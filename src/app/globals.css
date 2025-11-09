@@ -4,27 +4,27 @@
 
 @layer base {
   :root {
-    --background: 210 20% 98%; /* Near White from #F9F7F7, but using a cooler tone from the palette */
-    --foreground: 215 62% 21%; /* Dark Blue #112D4E */
-    --card: 210 20% 98%;
-    --card-foreground: 215 62% 21%;
-    --popover: 210 20% 98%;
-    --popover-foreground: 215 62% 21%;
-    --primary: 212 56% 57%; /* Blue #3F72AF */
-    --primary-foreground: 210 20% 98%;
-    --secondary: 216 47% 91%; /* Light Blue-Gray #DBE2EF */
-    --secondary-foreground: 215 62% 21%;
-    --muted: 216 47% 91%;
-    --muted-foreground: 215 62% 31%;
-    --accent: 212 56% 57%; /* Using Primary Blue for Accent */
-    --accent-foreground: 210 20% 98%;
+    --background: 40 25% 97%; /* #F9F8F6 */
+    --foreground: 224 71% 4%; /* Dark Blue */
+    --card: 40 25% 97%;
+    --card-foreground: 224 71% 4%;
+    --popover: 40 25% 97%;
+    --popover-foreground: 224 71% 4%;
+    --primary: 142 76% 36%; /* Green */
+    --primary-foreground: 142 76% 96%;
+    --secondary: 220 14% 91%; /* Light Gray */
+    --secondary-foreground: 224 71% 4%;
+    --muted: 220 14% 91%;
+    --muted-foreground: 224 71% 14%;
+    --accent: 142 76% 36%;
+    --accent-foreground: 142 76% 96%;
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 20% 98%;
-    --border: 216 47% 85%; /* A slightly darker version of secondary for borders */
-    --input: 216 47% 85%;
-    --ring: 212 56% 57%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 220 13% 85%;
+    --input: 220 13% 85%;
+    --ring: 142 76% 36%;
     --radius: 0.5rem;
-    --chart-1: 212 56% 57%;
+    --chart-1: 142 76% 36%;
     --chart-2: 215 62% 31%;
     --chart-3: 340 80% 70%;
     --chart-4: 40 90% 70%;
@@ -32,27 +32,27 @@
   }
 
   .dark {
-    --background: 215 62% 21%; /* Dark Blue #112D4E */
-    --foreground: 216 47% 91%; /* Light Blue-Gray #DBE2EF */
-    --card: 215 62% 21%;
-    --card-foreground: 216 47% 91%;
-    --popover: 215 62% 21%;
-    --popover-foreground: 216 47% 91%;
-    --primary: 212 56% 67%; /* Lighter Blue for dark mode */
-    --primary-foreground: 215 62% 11%;
-    --secondary: 215 62% 25%; /* Slightly lighter dark blue */
-    --secondary-foreground: 216 47% 91%;
-    --muted: 215 62% 25%;
-    --muted-foreground: 216 47% 81%;
-    --accent: 212 56% 67%;
-    --accent-foreground: 210 20% 98%;
+    --background: 224 71% 4%; /* Dark Blue */
+    --foreground: 220 14% 91%; /* Light Gray */
+    --card: 224 71% 4%;
+    --card-foreground: 220 14% 91%;
+    --popover: 224 71% 4%;
+    --popover-foreground: 220 14% 91%;
+    --primary: 142 76% 46%; /* Lighter Green */
+    --primary-foreground: 142 76% 96%;
+    --secondary: 224 71% 8%;
+    --secondary-foreground: 220 14% 91%;
+    --muted: 224 71% 8%;
+    --muted-foreground: 220 14% 81%;
+    --accent: 142 76% 46%;
+    --accent-foreground: 142 76% 96%;
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 20% 98%;
-    --border: 215 62% 25%;
-    --input: 215 62% 25%;
-    --ring: 212 56% 67%;
-    --chart-1: 212 56% 67%;
-    --chart-2: 216 47% 91%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 224 71% 8%;
+    --input: 224 71% 8%;
+    --ring: 142 76% 46%;
+    --chart-1: 142 76% 46%;
+    --chart-2: 220 14% 91%;
     --chart-3: 340 70% 65%;
     --chart-4: 40 80% 65%;
     --chart-5: 220 60% 70%;

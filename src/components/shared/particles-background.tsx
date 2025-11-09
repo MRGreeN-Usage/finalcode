@@ -43,7 +43,7 @@ export const ParticlesBackground: React.FC = () => {
                 }
               }
             `}</style>
-            {[...Array(75)].map((_, i) => (
+            {[...Array(100)].map((_, i) => (
               <Particle key={i} index={i} />
             ))}
         </div>
