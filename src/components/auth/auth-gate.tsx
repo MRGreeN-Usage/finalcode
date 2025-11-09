@@ -50,7 +50,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
             email: user.email,
             name: user.displayName || user.email?.split('@')[0],
             createdAt: serverTimestamp(),
-          }, { merge: true });
+          });
           // After creating, mark profile as ready.
           setIsProfileReady(true);
         }
