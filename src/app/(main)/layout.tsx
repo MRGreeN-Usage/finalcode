@@ -4,17 +4,33 @@ import { useState, useEffect } from 'react';
 import { AuthGate } from '@/components/auth/auth-gate';
 import { Sidebar } from '@/components/layout/sidebar';
 import { UserNav } from '@/components/layout/user-nav';
-import { Menu } from 'lucide-react';
+import { Menu, PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { ParticlesBackground } from '@/components/shared/particles-background';
 import { usePreferences } from '@/firebase/firestore/use-preferences';
+import { TransactionDialog } from '@/components/transactions/transaction-dialog';
+import type { Transaction } from '@/lib/types';
+import { useUser, useFirestore, addDocumentNonBlocking } from '@/firebase';
+import { collection } from 'firebase/firestore';
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
+  const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
   
+  const { user } = useUser();
+  const firestore = useFirestore();
+
   // Initialize preferences hook to apply theme
   usePreferences();
+
+  const handleSaveTransaction = (transactionData: Omit<Transaction, 'id' | 'userId'>) => {
+    if (!user || !firestore) return;
+    
+    const collectionRef = collection(firestore, 'users', user.uid, 'transactions');
+    addDocumentNonBlocking(collectionRef, { ...transactionData, userId: user.uid });
+  };
+
 
   return (
       <AuthGate>
@@ -36,6 +52,11 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
               </Sheet>
 
               <div className="flex-1" />
+              
+              <Button variant="outline" size="sm" onClick={() => setIsQuickAddOpen(true)}>
+                <PlusCircle className="h-4 w-4 mr-2" />
+                Quick Add
+              </Button>
 
               <UserNav />
             </header>
@@ -44,6 +65,12 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
             </main>
           </div>
         </div>
+
+        <TransactionDialog 
+            isOpen={isQuickAddOpen}
+            setIsOpen={setIsQuickAddOpen}
+            onSave={handleSaveTransaction}
+        />
       </AuthGate>
   );
 }
