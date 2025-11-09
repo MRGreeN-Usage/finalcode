@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { updateProfile } from 'firebase/auth';
+import { updateProfile, sendPasswordResetEmail } from 'firebase/auth';
 import { doc, updateDoc } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
 import type { Currency, Theme } from '@/lib/types';
@@ -26,6 +26,7 @@ export default function SettingsPage() {
     const [currency, setCurrency] = useState<Currency>(preferences?.currency || 'USD');
     const [theme, setTheme] = useState<Theme>(preferences?.theme || 'auto');
     const [isSavingPrefs, setIsSavingPrefs] = useState(false);
+    const [isSendingReset, setIsSendingReset] = useState(false);
 
     useEffect(() => {
         if (user?.displayName) {
@@ -68,6 +69,33 @@ export default function SettingsPage() {
         await updatePreferences({ currency, theme });
         setIsSavingPrefs(false);
     }
+
+    const handleChangePassword = async () => {
+        if (!user?.email) {
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'No email address found for your account.',
+            });
+            return;
+        }
+        setIsSendingReset(true);
+        try {
+            await sendPasswordResetEmail(auth, user.email);
+            toast({
+                title: 'Password Reset Email Sent',
+                description: `An email has been sent to ${user.email} with instructions to reset your password.`,
+            });
+        } catch (error: any) {
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: error.message,
+            });
+        } finally {
+            setIsSendingReset(false);
+        }
+    };
 
     const handleClearData = () => {
         console.log("Clearing all user data...");
@@ -146,7 +174,10 @@ export default function SettingsPage() {
                     <CardTitle>Security</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <Button variant="outline">Change Password</Button>
+                    <Button variant="outline" onClick={handleChangePassword} disabled={isSendingReset}>
+                        {isSendingReset && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Change Password
+                    </Button>
                 </CardContent>
             </Card>
 
