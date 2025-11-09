@@ -7,7 +7,6 @@ import {
   ArrowRightLeft,
   LayoutDashboard,
   Settings,
-  Wallet,
   Wand2,
 } from 'lucide-react';
 import { Logo } from '@/components/shared/logo';
@@ -17,7 +16,6 @@ import { Button } from '../ui/button';
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/transactions', icon: ArrowRightLeft, label: 'Transactions' },
-  { href: '/budgets', icon: Wallet, label: 'Budgets' },
   { href: '/analytics', icon: AreaChart, label: 'Analytics' },
   { href: '/assistant', icon: Wand2, label: 'AI Assistant' },
   { href: '/settings', icon: Settings, label: 'Settings' },

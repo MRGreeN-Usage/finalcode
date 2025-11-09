@@ -11,14 +11,6 @@ export interface Transaction {
   receiptUrl?: string;
 }
 
-export interface Budget {
-  id: string;
-  userId: string;
-  category: Exclude<TransactionCategory, 'Income'>;
-  amount: number;
-  month: string; // YYYY-MM format
-}
-
 export type PieChartData = {
   name: string;
   value: number;

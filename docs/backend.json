@@ -107,41 +107,6 @@
         "name"
       ]
     },
-    "Budget": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Budget",
-      "type": "object",
-      "description": "Represents a user's budget for a specific category and time period.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the budget."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to User. (Relationship: User 1:N Budget)"
-        },
-        "category": {
-          "type": "string",
-          "description": "The category for the budget."
-        },
-        "amount": {
-          "type": "number",
-          "description": "The budget amount."
-        },
-        "month": {
-          "type": "string",
-          "description": "The month of the budget period in 'YYYY-MM' format."
-        }
-      },
-      "required": [
-        "id",
-        "userId",
-        "category",
-        "amount",
-        "month"
-      ]
-    },
     "MonthlySummary": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "MonthlySummary",
@@ -253,26 +218,6 @@
         }
       },
       {
-        "path": "/users/{userId}/budgets/{budgetId}",
-        "definition": {
-          "entityName": "Budget",
-          "schema": {
-            "$ref": "#/backend/entities/Budget"
-          },
-          "description": "Stores budget data for each user.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user."
-            },
-            {
-              "name": "budgetId",
-              "description": "The unique identifier for the budget."
-            }
-          ]
-        }
-      },
-      {
         "path": "/users/{userId}/monthlySummaries/{monthlySummaryId}",
         "definition": {
           "entityName": "MonthlySummary",
@@ -293,6 +238,6 @@
         }
       }
     ],
-    "reasoning": "The Firestore data structure is designed to ensure security, scalability, and ease of debugging. User data and their related sub-collections (transactions, categories, budgets, summaries) are stored under a top-level `users` collection, with each user's data isolated under a document identified by their UID. This path-based ownership (`/users/{userId}`) is fundamental to the security rules, ensuring users can only access their own data. The existence of a document at `/users/{userId}` is a prerequisite for accessing any sub-collections, creating a secure gateway. This design follows the principle of Authorization Independence, as all necessary data for authorization is contained within the path or the document itself, avoiding costly and complex cross-document reads in security rules."
+    "reasoning": "The Firestore data structure is designed to ensure security, scalability, and ease of debugging. User data and their related sub-collections (transactions, categories, summaries) are stored under a top-level `users` collection, with each user's data isolated under a document identified by their UID. This path-based ownership (`/users/{userId}`) is fundamental to the security rules, ensuring users can only access their own data. The existence of a document at `/users/{userId}` is a prerequisite for accessing any sub-collections, creating a secure gateway. This design follows the principle of Authorization Independence, as all necessary data for authorization is contained within the path or the document itself, avoiding costly and complex cross-document reads in security rules."
   }
 }
