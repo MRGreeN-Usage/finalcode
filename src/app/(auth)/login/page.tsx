@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { useState, useEffect } from 'react';
 import { Logo } from '@/components/shared/logo';
 import { Loader2 } from 'lucide-react';
-import { useAuth, useUser, useFirestore, addDocumentNonBlocking } from '@/firebase';
+import { useAuth, useUser, useFirestore } from '@/firebase';
 import {
   signInWithEmailAndPassword,
   GoogleAuthProvider,
@@ -52,8 +52,8 @@ export default function LoginPage() {
     const userDocRef = doc(firestore, 'users', user.uid);
 
     try {
-      // Non-blocking write
-      setDoc(userDocRef, {
+      // Use await to ensure the profile document is created before proceeding.
+      await setDoc(userDocRef, {
         id: user.uid,
         email: user.email,
         name: user.displayName || email.split('@')[0],
@@ -61,6 +61,8 @@ export default function LoginPage() {
       }, { merge: true });
     } catch (error) {
         console.error("Error creating user profile:", error);
+        // Re-throw the error to be caught by the calling function's catch block
+        throw error;
     }
   };
 
@@ -71,13 +73,14 @@ export default function LoginPage() {
 
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      // The AuthGate will handle waiting for the profile. We just ensure the profile is created/updated.
+      // This now waits for the profile to be created/updated before redirecting.
       await createUserProfile(userCredential);
       router.push('/dashboard');
     } catch (error: any) {
       if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
         try {
           const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+          // This also waits for the profile to be created before redirecting.
           await createUserProfile(userCredential);
           router.push('/dashboard');
         } catch (signupError: any) {
@@ -107,6 +110,7 @@ export default function LoginPage() {
     const provider = new GoogleAuthProvider();
     try {
       const userCredential = await signInWithPopup(auth, provider);
+      // Wait for the profile to be created before redirecting.
       await createUserProfile(userCredential);
       router.push('/dashboard');
     } catch (error: any) {
