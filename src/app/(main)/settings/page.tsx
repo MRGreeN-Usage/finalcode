@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { useUser, useAuth, useFirestore, usePreferences } from '@/firebase';
+import { useUser, useAuth, useFirestore } from '@/firebase';
+import { usePreferences } from '@/firebase/firestore/use-preferences';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -18,13 +19,13 @@ export default function SettingsPage() {
     const auth = useAuth();
     const firestore = useFirestore();
     const { toast } = useToast();
-    const { preferences, updatePreferences } = usePreferences();
+    const { preferences, updatePreferences, isPreferencesLoading } = usePreferences();
 
     const [name, setName] = useState(user?.displayName || '');
     const [isSavingProfile, setIsSavingProfile] = useState(false);
 
-    const [currency, setCurrency] = useState<Currency>(preferences?.currency || 'USD');
-    const [theme, setTheme] = useState<Theme>(preferences?.theme || 'auto');
+    const [currency, setCurrency] = useState<Currency>('USD');
+    const [theme, setTheme] = useState<Theme>('auto');
     const [isSavingPrefs, setIsSavingPrefs] = useState(false);
     const [isSendingReset, setIsSendingReset] = useState(false);
 
@@ -36,13 +37,13 @@ export default function SettingsPage() {
     
     useEffect(() => {
         if (preferences) {
-            setCurrency(preferences.currency);
-            setTheme(preferences.theme);
+            setCurrency(preferences.currency || 'USD');
+            setTheme(preferences.theme || 'auto');
         }
     }, [preferences]);
 
     const handleSaveProfile = async () => {
-        if (!user || !auth.currentUser || !firestore) return;
+        if (!user || !auth?.currentUser || !firestore) return;
         setIsSavingProfile(true);
         try {
             await updateProfile(auth.currentUser, { displayName: name });
@@ -71,7 +72,7 @@ export default function SettingsPage() {
     }
 
     const handleChangePassword = async () => {
-        if (!user?.email) {
+        if (!user?.email || !auth) {
             toast({
                 variant: 'destructive',
                 title: 'Error',
@@ -136,7 +137,7 @@ export default function SettingsPage() {
                 <CardContent className="space-y-4 max-w-md">
                      <div className="space-y-2">
                         <Label htmlFor="currency">Currency</Label>
-                        <Select value={currency} onValueChange={(v) => setCurrency(v as Currency)}>
+                        <Select value={currency} onValueChange={(v) => setCurrency(v as Currency)} disabled={isPreferencesLoading}>
                             <SelectTrigger id="currency">
                                 <SelectValue placeholder="Select currency" />
                             </SelectTrigger>
@@ -151,19 +152,19 @@ export default function SettingsPage() {
                      </div>
                      <div className="space-y-2">
                         <Label htmlFor="theme">Theme</Label>
-                        <Select value={theme} onValueChange={(v) => setTheme(v as Theme)}>
+                        <Select value={theme} onValueChange={(v) => setTheme(v as Theme)} disabled={isPreferencesLoading}>
                             <SelectTrigger id="theme">
                                 <SelectValue placeholder="Select theme" />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="light">Light Mode</SelectItem>
                                 <SelectItem value="dark">Dark Mode</SelectItem>
-                                <SelectItem value="auto">Auto (System)</SelectItem>
+                                <SelectItem value="auto">System Default</SelectItem>
                             </SelectContent>
                         </Select>
                      </div>
-                     <Button onClick={handleSavePreferences} disabled={isSavingPrefs}>
-                        {isSavingPrefs && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                     <Button onClick={handleSavePreferences} disabled={isSavingPrefs || isPreferencesLoading}>
+                        {(isSavingPrefs || isPreferencesLoading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Save Preferences
                      </Button>
                 </CardContent>

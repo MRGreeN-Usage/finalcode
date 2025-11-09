@@ -1,6 +1,6 @@
 'use client';
 
-import { usePreferences } from "@/firebase";
+import { usePreferences } from "@/firebase/firestore/use-preferences";
 import type { Currency } from "@/lib/types";
 
 const currencySymbols: Record<Currency, string> = {
@@ -14,20 +14,23 @@ const currencySymbols: Record<Currency, string> = {
 export const useCurrency = () => {
     const { preferences } = usePreferences();
     const currency = preferences?.currency || 'USD';
-    const symbol = currencySymbols[currency];
+    const symbol = currencySymbols[currency] || '$';
 
     const format = (value: number) => {
-        return `${symbol}${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        // Fallback to 0 if value is not a number
+        const numericValue = typeof value === 'number' && !isNaN(value) ? value : 0;
+        return `${symbol}${numericValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     };
     
     const formatShort = (value: number) => {
-        if (value >= 1000000) {
-            return `${symbol}${(value / 1000000).toFixed(1)}m`;
+        const numericValue = typeof value === 'number' && !isNaN(value) ? value : 0;
+        if (numericValue >= 1000000) {
+            return `${symbol}${(numericValue / 1000000).toFixed(1)}m`;
         }
-        if (value >= 1000) {
-            return `${symbol}${(value / 1000).toFixed(1)}k`;
+        if (numericValue >= 1000) {
+            return `${symbol}${(numericValue / 1000).toFixed(1)}k`;
         }
-        return format(value);
+        return `${symbol}${numericValue.toFixed(0)}`;
     }
 
     return { currency, symbol, format, formatShort };

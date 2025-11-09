@@ -1,20 +1,22 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AuthGate } from '@/components/auth/auth-gate';
 import { Sidebar } from '@/components/layout/sidebar';
 import { UserNav } from '@/components/layout/user-nav';
 import { Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { FirebaseClientProvider } from '@/firebase';
 import { ParticlesBackground } from '@/components/shared/particles-background';
+import { usePreferences } from '@/firebase/firestore/use-preferences';
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
+  
+  // Initialize preferences hook to apply theme
+  usePreferences();
 
   return (
-    <FirebaseClientProvider>
       <AuthGate>
         <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
           <ParticlesBackground />
@@ -43,6 +45,5 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
           </div>
         </div>
       </AuthGate>
-    </FirebaseClientProvider>
   );
 }

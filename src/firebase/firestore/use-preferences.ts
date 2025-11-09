@@ -1,9 +1,9 @@
 'use client';
 
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, setDoc } from 'firebase/firestore';
 import { useFirestore, useUser, useDoc, useMemoFirebase } from '@/firebase';
 import type { UserPreferences, UserProfile } from '@/lib/types';
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
 export const usePreferences = () => {
@@ -16,20 +16,37 @@ export const usePreferences = () => {
         return doc(firestore, 'users', user.uid);
     }, [user, firestore]);
 
-    const { data: userProfile } = useDoc<UserProfile>(userDocRef);
+    const { data: userProfile, isLoading: isPreferencesLoading } = useDoc<UserProfile>(userDocRef);
 
     const preferences = userProfile?.preferences;
+    
+    useEffect(() => {
+      if (preferences?.theme) {
+        const theme = preferences.theme;
+        const root = window.document.documentElement;
+        root.classList.remove("light", "dark");
+        if (theme === "auto") {
+            const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+            root.classList.add(systemTheme);
+        } else {
+            root.classList.add(theme);
+        }
+      }
+    }, [preferences?.theme])
 
     const updatePreferences = useCallback(async (newPreferences: Partial<UserPreferences>) => {
         if (!userDocRef) return;
         
         try {
-            await updateDoc(userDocRef, {
+            // Use setDoc with merge to create the document if it doesn't exist,
+            // or update it if it does. This is more robust.
+            await setDoc(userDocRef, {
                 preferences: {
-                    ...(preferences || {}),
+                    ...(preferences || {}), // ensure existing preferences are kept
                     ...newPreferences
                 }
-            });
+            }, { merge: true });
+
             toast({
                 title: 'Preferences Updated',
                 description: 'Your new settings have been saved.',
@@ -43,5 +60,5 @@ export const usePreferences = () => {
         }
     }, [userDocRef, preferences, toast]);
 
-    return { preferences, updatePreferences };
+    return { preferences, updatePreferences, isPreferencesLoading };
 };
