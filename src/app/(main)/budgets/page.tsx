@@ -16,19 +16,15 @@ import { collection, query, where, doc } from 'firebase/firestore';
 export default function BudgetsPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedBudget, setSelectedBudget] = useState<Budget | undefined>(undefined);
-  const [currentMonth, setCurrentMonth] = useState<Date | null>(null);
+  const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
 
   const { user } = useUser();
   const firestore = useFirestore();
-
-  useEffect(() => {
-    setCurrentMonth(new Date());
-  }, []);
   
-  const monthKey = currentMonth ? format(currentMonth, "yyyy-MM") : '';
+  const monthKey = format(currentMonth, "yyyy-MM");
 
   const budgetsQuery = useMemoFirebase(() => {
-    if (!user || !firestore || !monthKey) return null;
+    if (!user || !firestore) return null;
     return query(
       collection(firestore, 'users', user.uid, 'budgets'),
       where('month', '==', monthKey)
@@ -38,7 +34,7 @@ export default function BudgetsPage() {
   const { data: budgets, isLoading: budgetsLoading } = useCollection<Budget>(budgetsQuery);
 
   const transactionsQuery = useMemoFirebase(() => {
-    if (!user || !firestore || !currentMonth) return null;
+    if (!user || !firestore) return null;
     const start = startOfMonth(currentMonth);
     const end = endOfMonth(currentMonth);
     return query(
@@ -64,10 +60,10 @@ export default function BudgetsPage() {
   }, [transactions]);
 
   const handleMonthChange = (direction: 'next' | 'prev') => {
-    setCurrentMonth((prev) => (prev ? addMonths(prev, direction === 'next' ? 1 : -1) : new Date()));
+    setCurrentMonth((prev) => addMonths(prev, direction === 'next' ? 1 : -1));
   };
   
-  const formattedMonth = currentMonth ? format(currentMonth, "MMMM yyyy") : '...';
+  const formattedMonth = format(currentMonth, "MMMM yyyy");
 
   const handleAddBudget = () => {
     setSelectedBudget(undefined);
@@ -104,14 +100,10 @@ export default function BudgetsPage() {
           <p className="text-muted-foreground">Set and track your spending goals for {formattedMonth}.</p>
         </div>
         <div className="flex items-center gap-2">
-            {currentMonth ? (
-                <MonthSelector 
-                    currentMonth={currentMonth} 
-                    onMonthChange={handleMonthChange}
-                />
-            ) : (
-                <Skeleton className="h-8 w-[170px]" />
-            )}
+            <MonthSelector 
+                currentMonth={currentMonth} 
+                onMonthChange={handleMonthChange}
+            />
             <Button onClick={handleAddBudget} className="gap-2">
               <PlusCircle className="h-4 w-4" />
               <span>Set Budget</span>
