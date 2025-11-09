@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { useState, useEffect } from 'react';
 import { Logo } from '@/components/shared/logo';
 import { Loader2 } from 'lucide-react';
-import { FirebaseClientProvider, useAuth, useFirestore, useUser } from '@/firebase';
+import { FirebaseClientProvider, useAuth, useFirestore, useUser, setDocumentNonBlocking } from '@/firebase';
 import {
   signInWithEmailAndPassword,
   GoogleAuthProvider,
@@ -16,7 +16,7 @@ import {
   createUserWithEmailAndPassword,
   UserCredential,
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 
 const GoogleIcon = () => (
@@ -49,30 +49,33 @@ function LoginPageContent() {
     if (!firestore) return;
     const user = userCredential.user;
     const userDocRef = doc(firestore, 'users', user.uid);
-    
+
     try {
       const docSnap = await getDoc(userDocRef);
       if (!docSnap.exists()) {
-        await setDoc(userDocRef, {
+        const userData = {
           id: user.uid,
           email: user.email,
           name: user.displayName || user.email?.split('@')[0] || 'New User',
           createdAt: serverTimestamp(),
-        });
+          preferences: {
+            currency: 'USD',
+            theme: 'auto',
+          }
+        };
+        // Use non-blocking write. If this fails due to rules, the error will be caught globally.
+        setDocumentNonBlocking(userDocRef, userData);
       }
-      // If user exists, no need to do anything, just navigate.
+      // If user exists, we can proceed.
+      router.push('/dashboard');
     } catch (error: any) {
-       toast({
-          variant: 'destructive',
-          title: 'Profile Creation Failed',
-          description: error.message,
-        });
-       setIsLoading(false);
-       return; // Stop execution if profile interaction fails
+      toast({
+        variant: 'destructive',
+        title: 'Profile Check Failed',
+        description: error.message || "There was a problem accessing your user profile.",
+      });
+      setIsLoading(false);
     }
-    
-    // Navigate after profile is guaranteed to exist or check has passed
-    router.push('/dashboard');
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -96,7 +99,7 @@ function LoginPageContent() {
         toast({ variant: 'destructive', title: 'Login Failed', description: error.message });
         setIsLoading(false);
       }
-    } 
+    }
   };
 
   const handleGoogleSignIn = async () => {
@@ -107,7 +110,7 @@ function LoginPageContent() {
       const userCredential = await signInWithPopup(auth, provider);
       await handleAuthSuccess(userCredential);
     } catch (error: any) {
-      toast({ variant: 'destructive', title: 'Google Sign-In Failed', description: error.message });
+      toast({ variant: 'destructive', title: 'Google Sign-In Failed', description: "Please ensure this app's domain is an authorized domain in your Firebase project settings. The error was: " + error.message });
       setIsLoading(false);
     }
   };
