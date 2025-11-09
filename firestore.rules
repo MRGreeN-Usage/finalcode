@@ -54,7 +54,7 @@ service cloud.firestore {
      * @principle Enforces document ownership for all operations.
      */
     match /users/{userId}/transactions/{transactionId} {
-      allow read, write: if isOwner(userId);
+      allow list, read, write: if isOwner(userId);
     }
 
     /**
@@ -64,7 +64,7 @@ service cloud.firestore {
      * @principle Enforces document ownership for all operations.
      */
     match /users/{userId}/categories/{categoryId} {
-       allow read, write: if isOwner(userId);
+       allow list, read, write: if isOwner(userId);
     }
 
     /**
@@ -74,7 +74,7 @@ service cloud.firestore {
      * @principle Enforces document ownership for all operations.
      */
     match /users/{userId}/budgets/{budgetId} {
-       allow read, write: if isOwner(userId);
+       allow list, read, write: if isOwner(userId);
     }
 
     /**
@@ -84,7 +84,7 @@ service cloud.firestore {
      * @principle Enforces document ownership for all operations.
      */
     match /users/{userId}/monthlySummaries/{monthlySummaryId} {
-       allow read, write: if isOwner(userId);
+       allow list, read, write: if isOwner(userId);
     }
   }
 }
