@@ -17,7 +17,7 @@ import {
   UserCredential,
 } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
-import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 const GoogleIcon = () => (
   <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2">
@@ -36,7 +36,6 @@ export default function LoginPage() {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const router = useRouter();
   const auth = useAuth();
-  const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
   const { toast } = useToast();
 
@@ -45,25 +44,10 @@ export default function LoginPage() {
       router.push('/dashboard');
     }
   }, [user, isUserLoading, router]);
-
-  const createUserProfile = async (userCredential: UserCredential) => {
-    if (!firestore) return;
-    const user = userCredential.user;
-    const userDocRef = doc(firestore, 'users', user.uid);
-
-    try {
-      // Use await to ensure the profile document is created before proceeding.
-      await setDoc(userDocRef, {
-        id: user.uid,
-        email: user.email,
-        name: user.displayName || email.split('@')[0],
-        createdAt: serverTimestamp(),
-      }, { merge: true });
-    } catch (error) {
-        console.error("Error creating user profile:", error);
-        // Re-throw the error to be caught by the calling function's catch block
-        throw error;
-    }
+  
+  // This function is simplified as AuthGate will handle profile creation.
+  const handleAuthSuccess = () => {
+    router.push('/dashboard');
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -72,17 +56,13 @@ export default function LoginPage() {
     if (!auth) return;
 
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      // This now waits for the profile to be created/updated before redirecting.
-      await createUserProfile(userCredential);
-      router.push('/dashboard');
+      await signInWithEmailAndPassword(auth, email, password);
+      handleAuthSuccess();
     } catch (error: any) {
       if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
         try {
-          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-          // This also waits for the profile to be created before redirecting.
-          await createUserProfile(userCredential);
-          router.push('/dashboard');
+          await createUserWithEmailAndPassword(auth, email, password);
+          handleAuthSuccess();
         } catch (signupError: any) {
           console.error('Signup failed after login attempt:', signupError);
           toast({
@@ -109,10 +89,8 @@ export default function LoginPage() {
     if (!auth) return;
     const provider = new GoogleAuthProvider();
     try {
-      const userCredential = await signInWithPopup(auth, provider);
-      // Wait for the profile to be created before redirecting.
-      await createUserProfile(userCredential);
-      router.push('/dashboard');
+      await signInWithPopup(auth, provider);
+      handleAuthSuccess();
     } catch (error: any) {
       console.error("Google sign-in failed:", error);
       toast({
