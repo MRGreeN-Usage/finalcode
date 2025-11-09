@@ -8,7 +8,9 @@ import type { Budget, Transaction } from '@/lib/types';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { collection, query, where, doc } from 'firebase/firestore';
-import { format, startOfMonth, endOfMonth } from 'date-fns';
+import { format, startOfMonth, endOfMonth, addMonths } from 'date-fns';
+import { MonthSelector } from '@/components/dashboard/month-selector';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function BudgetsPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -74,21 +76,35 @@ export default function BudgetsPage() {
     deleteDocumentNonBlocking(docRef);
   };
 
+  const handleMonthChange = (direction: 'next' | 'prev') => {
+    setCurrentMonth((prev) => addMonths(prev, direction === 'next' ? 1 : -1));
+  };
+  
   const isLoading = budgetsLoading || transactionsLoading;
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Budgets</h1>
           <p className="text-muted-foreground">
             Manage your monthly budgets for {format(currentMonth, 'MMMM yyyy')}
           </p>
         </div>
-        <Button onClick={handleAddBudget} className="gap-2">
-          <PlusCircle className="h-4 w-4" />
-          <span>Add Budget</span>
-        </Button>
+        <div className="flex items-center gap-2">
+            {currentMonth ? (
+                <MonthSelector 
+                    currentMonth={currentMonth} 
+                    onMonthChange={handleMonthChange}
+                />
+            ) : (
+                <Skeleton className="h-8 w-[170px]" />
+            )}
+            <Button onClick={handleAddBudget} className="gap-2">
+                <PlusCircle className="h-4 w-4" />
+                <span>Add Budget</span>
+            </Button>
+        </div>
       </div>
 
       <BudgetList
