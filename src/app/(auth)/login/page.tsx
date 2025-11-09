@@ -46,29 +46,31 @@ function LoginPageContent() {
     }
   }, [user, isUserLoading, router]);
 
-  const handleAuthSuccess = async (userCredential: UserCredential) => {
+  const createUserProfile = async (user: UserCredential['user']) => {
     if (!firestore) return;
-    const user = userCredential.user;
     const userDocRef = doc(firestore, 'users', user.uid);
-    
+    const docSnap = await getDoc(userDocRef);
+    if (!docSnap.exists()) {
+      await setDoc(userDocRef, {
+        id: user.uid,
+        email: user.email,
+        name: user.displayName || user.email?.split('@')[0] || 'New User',
+        createdAt: serverTimestamp(),
+      });
+    }
+  };
+
+  const handleAuthSuccess = async (userCredential: UserCredential) => {
     try {
-        const docSnap = await getDoc(userDocRef);
-        if (!docSnap.exists()) {
-            await setDoc(userDocRef, {
-                id: user.uid,
-                email: user.email,
-                name: user.displayName || user.email?.split('@')[0] || 'New User',
-                createdAt: serverTimestamp(),
-            });
-        }
-        router.push('/dashboard');
+      await createUserProfile(userCredential.user);
+      router.push('/dashboard');
     } catch (error: any) {
-        console.error('Failed to ensure user profile:', error);
-        toast({
-            variant: 'destructive',
-            title: 'Setup Failed',
-            description: 'Could not create or verify your user profile. Please try again.',
-        });
+      console.error('Failed to ensure user profile:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Setup Failed',
+        description: 'Could not create or verify your user profile. Please try again.',
+      });
     }
   };
 
