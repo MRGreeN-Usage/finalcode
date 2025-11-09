@@ -61,7 +61,7 @@ export default function DashboardPage() {
             onMonthChange={handleMonthChange}
           />
         ) : (
-            <Skeleton className="h-8 w-[170px]" />
+            <Skeleton className="h-8 w-[200px]" />
         )}
       </div>
 
@@ -73,7 +73,7 @@ export default function DashboardPage() {
         isLoading={transactionsLoading}
       />
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
+      <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-7">
         <div className="lg:col-span-4">
           <IncomeExpenseChart transactions={transactions || []} />
         </div>

@@ -86,32 +86,34 @@ export default function TransactionsPage() {
           <h1 className="text-2xl font-bold tracking-tight">Transactions</h1>
           <p className="text-muted-foreground">Your income and expenses for {formattedMonth}.</p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
            {currentMonth ? (
             <MonthSelector 
               currentMonth={currentMonth} 
               onMonthChange={handleMonthChange}
             />
           ) : (
-              <Skeleton className="h-8 w-[170px]" />
+              <Skeleton className="h-9 w-[200px]" />
           )}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="gap-2" disabled={!transactions || transactions.length === 0}>
-                <FileDown className="h-4 w-4" />
-                <span>Export</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => transactions && exportToCsv(transactions, `transactions-${format(currentMonth!, 'yyyy-MM')}.csv`)}>Export as CSV</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => transactions && exportToTxt(transactions, `transactions-${format(currentMonth!, 'yyyy-MM')}.txt`, `Transaction Report for ${formattedMonth}`)}>Export as TXT</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div className="flex items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="gap-2 w-full sm:w-auto" disabled={!transactions || transactions.length === 0}>
+                  <FileDown className="h-4 w-4" />
+                  <span>Export</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => transactions && exportToCsv(transactions, `transactions-${format(currentMonth!, 'yyyy-MM')}.csv`)}>Export as CSV</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => transactions && exportToTxt(transactions, `transactions-${format(currentMonth!, 'yyyy-MM')}.txt`, `Transaction Report for ${formattedMonth}`)}>Export as TXT</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
-          <Button onClick={handleAddTransaction} className="gap-2">
-            <PlusCircle className="h-4 w-4" />
-            <span>Add Transaction</span>
-          </Button>
+            <Button onClick={handleAddTransaction} className="gap-2 w-full sm:w-auto">
+              <PlusCircle className="h-4 w-4" />
+              <span>Add</span>
+            </Button>
+          </div>
         </div>
       </div>
 

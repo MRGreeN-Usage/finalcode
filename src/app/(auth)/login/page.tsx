@@ -50,27 +50,28 @@ function LoginPageContent() {
     const user = userCredential.user;
     const userDocRef = doc(firestore, 'users', user.uid);
     
-    const docSnap = await getDoc(userDocRef);
-    if (!docSnap.exists()) {
-      try {
-        // Explicitly await the profile creation
+    try {
+      const docSnap = await getDoc(userDocRef);
+      if (!docSnap.exists()) {
         await setDoc(userDocRef, {
           id: user.uid,
           email: user.email,
           name: user.displayName || user.email?.split('@')[0] || 'New User',
           createdAt: serverTimestamp(),
         });
-      } catch (error: any) {
-        toast({
+      }
+      // If user exists, no need to do anything, just navigate.
+    } catch (error: any) {
+       toast({
           variant: 'destructive',
           title: 'Profile Creation Failed',
           description: error.message,
         });
-        setIsLoading(false);
-        return; // Stop execution if profile creation fails
-      }
+       setIsLoading(false);
+       return; // Stop execution if profile interaction fails
     }
-    // Only navigate after profile is guaranteed to exist
+    
+    // Navigate after profile is guaranteed to exist or check has passed
     router.push('/dashboard');
   };
 
@@ -96,7 +97,6 @@ function LoginPageContent() {
         setIsLoading(false);
       }
     } 
-    // Do not set isLoading to false here, as handleAuthSuccess will navigate
   };
 
   const handleGoogleSignIn = async () => {
@@ -112,8 +112,6 @@ function LoginPageContent() {
     }
   };
   
-  // While user is loading OR if user object exists, show loader
-  // This prevents the login form from flashing before redirecting
   if (isUserLoading || user) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
@@ -131,58 +129,56 @@ function LoginPageContent() {
           <CardDescription>Enter your credentials to continue.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4">
-            <form onSubmit={handleLogin} className="grid gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="m@example.com"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={isLoading}
-                />
-              </div>
-              <div className="grid gap-2">
-                <div className="flex items-center">
-                  <Label htmlFor="password">Password</Label>
-                </div>
-                <Input
-                  id="password"
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={isLoading}
-                />
-              </div>
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Login or Sign Up with Email
-              </Button>
-            </form>
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">
-                  Or continue with
-                </span>
-              </div>
+          <form onSubmit={handleLogin} className="grid gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="m@example.com"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={isLoading}
+              />
             </div>
-            <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading}>
-              {isLoading ? (
-                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <GoogleIcon />
-              )}
-              Continue with Google
+            <div className="grid gap-2">
+              <div className="flex items-center">
+                <Label htmlFor="password">Password</Label>
+              </div>
+              <Input
+                id="password"
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={isLoading}
+              />
+            </div>
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Login or Sign Up
             </Button>
+          </form>
+          <div className="relative my-4">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">
+                Or continue with
+              </span>
+            </div>
           </div>
-          <div className="mt-4 text-center text-sm">
+          <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading}>
+            {isLoading ? (
+               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <GoogleIcon />
+            )}
+            Google
+          </Button>
+          <div className="mt-4 text-center text-sm text-muted-foreground">
              By signing in, you agree to our terms.
           </div>
         </CardContent>

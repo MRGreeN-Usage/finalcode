@@ -67,14 +67,14 @@ export default function BudgetsPage() {
           <h1 className="text-2xl font-bold tracking-tight">Budgets</h1>
           <p className="text-muted-foreground">Manage your monthly budgets for {formattedMonth}</p>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
           {currentMonth ? (
             <MonthSelector 
               currentMonth={currentMonth} 
               onMonthChange={handleMonthChange}
             />
           ) : (
-            <Skeleton className="h-8 w-[170px]" />
+            <Skeleton className="h-9 w-[200px]" />
           )}
           <Button onClick={() => setIsDialogOpen(true)} className="gap-2">
             <PlusCircle />

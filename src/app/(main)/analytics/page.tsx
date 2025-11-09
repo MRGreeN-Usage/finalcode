@@ -108,7 +108,7 @@ export default function AnalyticsPage() {
                 <CardDescription>Your daily expenses over the last month.</CardDescription>
             </CardHeader>
             <CardContent>
-                <div className="h-[250px] w-full">
+              <ResponsiveContainer width="100%" height={250}>
                 {isLoading ? <Skeleton className="h-full w-full" /> : (
                     <ChartContainer config={{}} className="w-full h-full">
                         <LineChart data={thirtyDayTrendData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
@@ -120,7 +120,7 @@ export default function AnalyticsPage() {
                         </LineChart>
                     </ChartContainer>
                 )}
-                </div>
+              </ResponsiveContainer>
             </CardContent>
           </Card>
           <Card>
@@ -160,19 +160,19 @@ export default function AnalyticsPage() {
             <CardDescription>Spending by category for {format(new Date(), 'MMMM yyyy')}.</CardDescription>
         </CardHeader>
         <CardContent>
-            <div className="h-[300px] w-full">
+            <ResponsiveContainer width="100%" height={300}>
             {isLoading ? <Skeleton className="w-full h-full" /> : (
                  <ChartContainer config={{}} className="w-full h-full">
                     <BarChart data={categorySpendingData} layout="vertical" margin={{ left: 10, right: 30 }}>
                         <CartesianGrid horizontal={false} />
                         <XAxis type="number" tickFormatter={(v) => formatShort(v)} />
-                        <YAxis type="category" dataKey="name" width={80} tickLine={false} axisLine={false}/>
+                        <YAxis type="category" dataKey="name" width={80} tickLine={false} axisLine={false} interval={0} />
                         <Tooltip content={<ChartTooltipContent />} cursor={{fill: 'hsl(var(--muted))'}}/>
                         <Bar dataKey="total" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
                     </BarChart>
                 </ChartContainer>
             )}
-            </div>
+            </ResponsiveContainer>
         </CardContent>
       </Card>
     </div>

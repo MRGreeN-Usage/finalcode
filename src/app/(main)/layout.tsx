@@ -46,21 +46,21 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                     <span className="sr-only">Toggle navigation menu</span>
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="left" className="flex flex-col">
+                <SheetContent side="left" className="flex flex-col p-0">
                   <Sidebar onLinkClick={() => setOpen(false)} />
                 </SheetContent>
               </Sheet>
 
-              <div className="flex-1" />
+              <div className="w-full flex-1" />
               
-              <Button variant="outline" size="sm" onClick={() => setIsQuickAddOpen(true)}>
+              <Button variant="outline" size="sm" onClick={() => setIsQuickAddOpen(true)} className="shrink-0">
                 <PlusCircle className="h-4 w-4 mr-2" />
                 Quick Add
               </Button>
 
               <UserNav />
             </header>
-            <main className="flex-1 p-4 sm:p-6 bg-secondary/10">
+            <main className="flex-1 p-4 sm:p-6 bg-secondary/10 overflow-y-auto">
               {children}
             </main>
           </div>
