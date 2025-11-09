@@ -15,16 +15,14 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       router.push('/login');
     }
   }, [user, isUserLoading, router]);
-  
+
   if (isUserLoading || !user) {
-     return (
+    return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
           <Logo />
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-muted-foreground">
-            Authenticating...
-          </p>
+          <p className="text-muted-foreground">Authenticating...</p>
         </div>
       </div>
     );

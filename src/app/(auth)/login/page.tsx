@@ -50,15 +50,31 @@ function LoginPageContent() {
   const handleAuthSuccess = async (user: User) => {
     if (!firestore) return;
     const userDocRef = doc(firestore, 'users', user.uid);
-    const docSnap = await getDoc(userDocRef);
-    if (!docSnap.exists()) {
-      await setDoc(userDocRef, {
-        id: user.uid,
-        email: user.email,
-        name: user.displayName || user.email?.split('@')[0] || 'New User',
-        createdAt: serverTimestamp(),
-      });
+    
+    try {
+        const docSnap = await getDoc(userDocRef);
+        if (!docSnap.exists()) {
+            await setDoc(userDocRef, {
+                id: user.uid,
+                email: user.email,
+                name: user.displayName || user.email?.split('@')[0] || 'New User',
+                createdAt: serverTimestamp(),
+            });
+        }
+    } catch (error) {
+        console.error("Error ensuring user profile exists:", error);
+        toast({
+            variant: 'destructive',
+            title: 'Profile Error',
+            description: 'Could not create or verify your user profile.',
+        });
+        // Optionally, sign the user out to prevent being in a broken state
+        if (auth) {
+            await auth.signOut();
+        }
+        return; // Stop execution
     }
+
     router.push('/dashboard');
   };
 
@@ -68,13 +84,15 @@ function LoginPageContent() {
     setIsLoading(true);
 
     try {
+      // First, try to sign in
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       await handleAuthSuccess(userCredential.user);
     } catch (error: any) {
+      // If user not found, try to create a new account
       if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
         try {
-          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-          await handleAuthSuccess(userCredential.user);
+          const newUserCredential = await createUserWithEmailAndPassword(auth, email, password);
+          await handleAuthSuccess(newUserCredential.user);
         } catch (signupError: any) {
           toast({
             variant: 'destructive',
