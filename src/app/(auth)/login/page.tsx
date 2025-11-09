@@ -14,10 +14,10 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   createUserWithEmailAndPassword,
-  UserCredential,
+  User,
 } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 
 const GoogleIcon = () => (
   <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2">
@@ -36,6 +36,7 @@ export default function LoginPage() {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const router = useRouter();
   const auth = useAuth();
+  const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
   const { toast } = useToast();
 
@@ -44,9 +45,23 @@ export default function LoginPage() {
       router.push('/dashboard');
     }
   }, [user, isUserLoading, router]);
-  
-  // This function is simplified as AuthGate will handle profile creation.
-  const handleAuthSuccess = () => {
+
+  const ensureUserProfile = async (user: User) => {
+    if (!firestore) return;
+    const userDocRef = doc(firestore, 'users', user.uid);
+    const docSnap = await getDoc(userDocRef);
+    if (!docSnap.exists()) {
+      await setDoc(userDocRef, {
+        id: user.uid,
+        email: user.email,
+        name: user.displayName || user.email?.split('@')[0],
+        createdAt: serverTimestamp(),
+      });
+    }
+  };
+
+  const handleAuthSuccess = async (user: User) => {
+    await ensureUserProfile(user);
     router.push('/dashboard');
   };
 
@@ -56,15 +71,15 @@ export default function LoginPage() {
     if (!auth) return;
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      handleAuthSuccess();
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      await handleAuthSuccess(userCredential.user);
     } catch (error: any) {
       if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
         try {
-          await createUserWithEmailAndPassword(auth, email, password);
-          handleAuthSuccess();
+          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+          await handleAuthSuccess(userCredential.user);
         } catch (signupError: any) {
-          console.error('Signup failed after login attempt:', signupError);
+          console.error('Signup failed:', signupError);
           toast({
             variant: 'destructive',
             title: 'Sign-up Failed',
@@ -89,8 +104,8 @@ export default function LoginPage() {
     if (!auth) return;
     const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
-      handleAuthSuccess();
+      const userCredential = await signInWithPopup(auth, provider);
+      await handleAuthSuccess(userCredential.user);
     } catch (error: any) {
       console.error("Google sign-in failed:", error);
       toast({
