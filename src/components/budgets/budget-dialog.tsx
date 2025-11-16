@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -38,7 +38,7 @@ interface BudgetDialogProps {
 }
 
 export function BudgetDialog({ isOpen, setIsOpen, budget, month, year, existingCategories }: BudgetDialogProps) {
-  const [category, setCategory] = useState<string>('Food');
+  const [category, setCategory] = useState<string>('');
   const [amount, setAmount] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
@@ -52,20 +52,22 @@ export function BudgetDialog({ isOpen, setIsOpen, budget, month, year, existingC
 
   const { data: customCategories } = useCollection<Category>(categoriesQuery);
 
-  const allCategories = [
+  const allCategories = useMemo(() => [
     ...defaultCategories,
     ...(customCategories?.map(c => c.name) || [])
-  ].filter((v, i, a) => a.indexOf(v) === i); // Unique categories
+  ].filter((v, i, a) => a.indexOf(v) === i), [customCategories]); // Unique categories
   
 
   useEffect(() => {
-    if (budget) {
-      setCategory(budget.category);
-      setAmount(String(budget.amount));
-    } else {
-      const firstAvailable = allCategories.find(c => !existingCategories.includes(c));
-      setCategory(firstAvailable || 'Food');
-      setAmount('');
+    if (isOpen) {
+        if (budget) {
+            setCategory(budget.category);
+            setAmount(String(budget.amount));
+        } else {
+            const firstAvailable = allCategories.find(c => !existingCategories.includes(c));
+            setCategory(firstAvailable || 'Food');
+            setAmount('');
+        }
     }
   }, [budget, isOpen, existingCategories, allCategories]);
 
