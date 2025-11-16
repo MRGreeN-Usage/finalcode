@@ -86,7 +86,7 @@ export default function ReportsPage() {
         </div>
       </div>
       
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-6 grid-cols-1 lg:grid-cols-5">
         <div className="lg:col-span-2">
             <CategoryPieChart transactions={monthTransactions} isLoading={transactionsLoading} />
         </div>
